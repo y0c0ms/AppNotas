@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AppNotas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="app-logo">
+      <img src="../public/icon-removebg-preview.png" alt="AppNotas" class="app-icon" width="40" height="40" 
+           loading="eager" decoding="sync">
+    </div>
+    <button id="darkModeToggle">🌙</button>
+  </header>
+  
+  <nav class="tabs">
+    <button id="notesTab" class="tab active">Notes</button>
+    <button id="calendarTab" class="tab">Calendar</button>
+  </nav>
+  
+  <main>
+    <section id="notesView" class="view active">
+      <div class="add-note-container">
+        <button id="toggleAddNote" class="toggle-add-note">
+          <span class="plus-icon">+</span>
+          <span class="label">Add Note</span>
+        </button>
+        
+        <div id="addNoteForm" class="add-note-form">
+          <input type="text" id="noteInput" placeholder="Enter your note...">
+          
+          <button id="toggleDateBtn" class="toggle-date-btn">Date: <span class="icon">📅</span></button>
+          
+          <div id="dateSection" class="date-section">
+            <div class="date-inputs">
+              <input type="date" id="datePicker">
+              <div class="quick-buttons">
+                <button id="todayBtn">Today</button>
+                <button id="tomorrowBtn">Tomorrow</button>
+                <button id="openCustomCalendarBtn" class="calendar-btn">📅</button>
+              </div>
+            </div>
+            
+            <div class="recurring-check">
+              <label>
+                <input type="checkbox" id="recurringCheck">
+                Repeat weekly
+              </label>
+            </div>
+            
+            <div class="time-container">
+              <label for="timeInput">Time (optional):</label>
+              <input type="time" id="timeInput">
+              
+              <div class="time-selectors">
+                <div id="hourSelector" class="selector-group">
+                  <div class="selector-label">Hour</div>
+                  <div class="selector-buttons">
+                    <button class="time-btn" data-hour="12">12</button>
+                    <button class="time-btn" data-hour="1">1</button>
+                    <button class="time-btn" data-hour="2">2</button>
+                    <button class="time-btn" data-hour="3">3</button>
+                    <button class="time-btn" data-hour="4">4</button>
+                    <button class="time-btn" data-hour="5">5</button>
+                    <button class="time-btn" data-hour="6">6</button>
+                    <button class="time-btn" data-hour="7">7</button>
+                    <button class="time-btn" data-hour="8">8</button>
+                    <button class="time-btn" data-hour="9">9</button>
+                    <button class="time-btn" data-hour="10">10</button>
+                    <button class="time-btn" data-hour="11">11</button>
+                  </div>
+                </div>
+                
+                <div id="periodSelector" class="selector-group">
+                  <div class="selector-label">AM/PM</div>
+                  <div class="selector-buttons period-buttons">
+                    <button class="time-period-btn" data-period="AM">AM</button>
+                    <button class="time-period-btn" data-period="PM">PM</button>
+                  </div>
+                </div>
+                
+                <div id="minuteSelector" class="selector-group">
+                  <div class="selector-label">Minute</div>
+                  <div class="selector-buttons">
+                    <button class="time-btn" data-minute="00">00</button>
+                    <button class="time-btn" data-minute="15">15</button>
+                    <button class="time-btn" data-minute="30">30</button>
+                    <button class="time-btn" data-minute="45">45</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <button id="addNoteBtn" class="add-btn">Add Note</button>
+        </div>
+      </div>
+      
+      <div class="notes-columns">
+        <div class="notes-column">
+          <h3 class="column-header">Notes without dates</h3>
+          <div id="undatedNotesList" class="notes-list"></div>
+        </div>
+        <div class="notes-column">
+          <h3 class="column-header">Notes with dates</h3>
+          <div id="datedNotesList" class="notes-list"></div>
+        </div>
+      </div>
+      
+      <!-- Custom calendar popup for date selection -->
+      <div id="customDatePicker" class="custom-date-picker">
+        <div class="date-picker-header">
+          <button id="prevMonthBtn">&lt;</button>
+          <div id="currentMonthYear"></div>
+          <button id="nextMonthBtn">&gt;</button>
+        </div>
+        <div id="monthDays" class="month-days"></div>
+        <div class="date-picker-footer">
+          <button id="cancelDateBtn">Cancel</button>
+          <button id="confirmDateBtn">Confirm</button>
+        </div>
+      </div>
+    </section>
+    
+    <section id="calendarView" class="view">
+      <div class="calendar-header">
+        <div class="calendar-controls">
+          <button id="prevBtn" class="nav-btn">◀</button>
+          <div class="view-toggle">
+            <button id="weekViewBtn" class="view-btn active">Week</button>
+            <button id="monthViewBtn" class="view-btn">Month</button>
+          </div>
+          <button id="nextBtn" class="nav-btn">▶</button>
+        </div>
+      </div>
+      <div id="weekDays" class="grid"></div>
+    </section>
+  </main>
+  
+  <script src="app.js"></script>
+  <script>
+    // Add zoom functionality with Ctrl + mousewheel
+    document.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        
+        // Get current zoom level
+        let currentZoom = parseFloat(document.documentElement.style.zoom || 1);
+        
+        // Adjust zoom based on wheel direction
+        if (e.deltaY < 0) {
+          // Zoom in
+          currentZoom += 0.1;
+        } else {
+          // Zoom out
+          currentZoom -= 0.1;
+        }
+        
+        // Limit zoom range
+        currentZoom = Math.max(0.5, Math.min(2, currentZoom));
+        
+        // Apply zoom
+        document.documentElement.style.zoom = currentZoom;
+      }
+    }, { passive: false });
+  </script>
+</body>
+</html> 

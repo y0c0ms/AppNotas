@@ -1,0 +1,35 @@
+{
+  "name": "cleanappnotas",
+  "version": "1.0.0",
+  "description": "A simple note-taking app with calendar integration",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "dev": "electron ."
+  },
+  "keywords": [
+    "notes",
+    "calendar",
+    "electron"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^35.0.3"
+  },
+  "devDependencies": {
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.cleanappnotas.app",
+    "productName": "CleanAppNotas",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon-removebg-preview.png"
+    }
+  }
+}
