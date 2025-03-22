@@ -1,0 +1,1786 @@
+:root {
+  --primary-color: #4F46E5;
+  --primary-color-light: rgba(93, 95, 239, 0.1);
+  --secondary-color: #818CF8;
+  --bg-color: #f8f9fe;
+  --text-color: #333;
+  --card-bg: #fff;
+  --border-color: #e5e7eb;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --header-bg: #fff;
+  --header-text: #333;
+  --calendar-today: rgba(93, 95, 239, 0.15);
+  --anim-duration: 0.3s;
+  
+  /* Note colors */
+  --note-color-default: #ffffff;
+  --note-color-blue: #deeaff;
+  --note-color-green: #ddffe7;
+  --note-color-red: #ffdddd;
+  --note-color-purple: #eddeff;
+}
+
+.dark-mode {
+  --primary-color: #6366F1;
+  --primary-color-light: rgba(140, 142, 255, 0.15);
+  --secondary-color: #A5B4FC;
+  --bg-color: #1a1c2a;
+  --text-color: #e5e7eb;
+  --card-bg: #2d2e40;
+  --border-color: #4b5563;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --header-bg: #14151f;
+  --header-text: #f3f4f6;
+  --calendar-today: rgba(140, 142, 255, 0.2);
+  
+  /* Note colors in dark mode */
+  --note-color-default: #3a3f4d;
+  --note-color-blue: #2a4a7a;
+  --note-color-green: #2a5840;
+  --note-color-red: #6e3636;
+  --note-color-purple: #4a3262;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color var(--anim-duration), color var(--anim-duration);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--header-bg);
+  color: var(--header-text);
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: background-color var(--anim-duration), color var(--anim-duration), box-shadow var(--anim-duration);
+}
+
+h1 {
+  color: var(--primary-color);
+  font-weight: 600;
+  transition: color var(--anim-duration);
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background-color var(--anim-duration), transform var(--anim-duration), box-shadow var(--anim-duration);
+}
+
+button:hover {
+  background-color: var(--secondary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+input {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  font-size: 1rem;
+  transition: border-color var(--anim-duration), box-shadow var(--anim-duration);
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-color-light);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  padding: 0 1rem;
+  transition: border-color var(--anim-duration);
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  margin-right: 0.5rem;
+  background: none;
+  color: var(--text-color);
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+  transition: color var(--anim-duration), border-color var(--anim-duration);
+}
+
+.tab.active {
+  border-bottom-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.tab:hover {
+  background: none;
+  color: var(--primary-color);
+}
+
+/* Views */
+.view {
+  display: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.view.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+  animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Notes */
+.input-container {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.input-container input {
+  flex: 1;
+  margin-right: 0.5rem;
+}
+
+#noteInput {
+  width: 100%;
+  margin-bottom: 15px;
+  font-size: 1rem;
+  padding: 12px 15px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  display: block;
+  box-sizing: border-box;
+  margin-top: 5px;
+}
+
+#noteInput:focus {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.note-card {
+  background-color: var(--card-bg);
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+  margin-bottom: 15px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
+  position: relative;
+  animation: cardAppear 0.4s ease-out;
+}
+
+@keyframes cardAppear {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.note-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.note-text {
+  flex: 1;
+  padding: 5px;
+  border-radius: 4px;
+  min-height: 24px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.note-text:focus {
+  outline: 1px solid var(--primary-color);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.note-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  background-color: var(--primary-color-light);
+}
+
+.note-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.note-actions button, .note-meta-item {
+  font-size: 0.85rem;
+}
+
+.note-meta {
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.calendar-checkbox {
+  height: 18px;
+  width: 18px;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.calendar-checkbox:hover {
+  transform: scale(1.2);
+}
+
+.delete-note {
+  background-color: transparent;
+  color: #ef4444;
+  font-size: 22px;
+  padding: 0;
+  margin: 0;
+  height: 28px;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.delete-note:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  transform: rotate(90deg);
+}
+
+/* Calendar */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.day-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 350px;
+  background-color: var(--primary-color-light);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.day-column:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.day-header {
+  text-align: center;
+  font-weight: 500;
+  padding: 0.8rem;
+  border-radius: 8px 8px 0 0;
+  background-color: var(--primary-color-light);
+  color: var(--text-color);
+  transition: background-color 0.3s;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.today-header {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: bold;
+}
+
+.calendar-day {
+  background-color: var(--card-bg);
+  border-radius: 0 0 8px 8px;
+  padding: 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: all 0.3s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) inset;
+}
+
+.calendar-day.has-events {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.calendar-day.today-cell {
+  background-color: var(--calendar-today);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1) inset;
+}
+
+.calendar-event {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  animation: eventSlideIn 0.3s ease-in-out;
+  transition: all 0.2s;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 4px solid var(--primary-color);
+}
+
+@keyframes eventSlideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.calendar-event:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+}
+
+.no-events {
+  color: #9ca3af;
+  text-align: center;
+  margin: auto;
+  font-style: italic;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+/* Fix calendar event colors */
+.calendar-event.color-default {
+  background-color: var(--note-color-default);
+  border-left-color: var(--primary-color);
+}
+
+.calendar-event.color-blue {
+  background-color: var(--note-color-blue);
+  border-left-color: #4a89dc;
+}
+
+.calendar-event.color-green {
+  background-color: var(--note-color-green);
+  border-left-color: #3cbc6d;
+}
+
+.calendar-event.color-red {
+  background-color: var(--note-color-red);
+  border-left-color: #e74c3c;
+}
+
+.calendar-event.color-purple {
+  background-color: var(--note-color-purple);
+  border-left-color: #9b59b6;
+}
+
+/* Dark mode toggle */
+#darkModeToggle {
+  background: none;
+  color: var(--text-color);
+  font-size: 1.5rem;
+  transition: transform 0.5s;
+}
+
+#darkModeToggle:hover {
+  transform: rotate(180deg);
+  background: none;
+}
+
+/* Drag and drop */
+.dragging {
+  opacity: 0.5;
+  transform: scale(1.05);
+}
+
+.drag-over {
+  border: 2px dashed var(--primary-color);
+}
+
+/* Note header with toggle button */
+.note-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.toggle-add {
+  background-color: var(--primary-color);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 24px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.5s cubic-bezier(0.68, -0.6, 0.32, 1.6), 
+              background-color 0.3s;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 10;
+}
+
+.toggle-add.open {
+  transform: rotate(45deg);
+}
+
+.add-note-form {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.8s cubic-bezier(0, 1, 0, 1), 
+              opacity 0.8s ease, 
+              transform 0.8s ease;
+  margin-bottom: 0;
+  opacity: 0;
+  transform: translateY(-20px);
+  position: relative;
+  z-index: 5;
+}
+
+.add-note-form.open {
+  max-height: 600px;
+  margin-bottom: 25px;
+  opacity: 1;
+  transform: translateY(0);
+  transition: max-height 0.8s cubic-bezier(0.5, 0, 1, 0), 
+              opacity 0.8s ease, 
+              transform 0.8s ease;
+}
+
+.add-note-form input,
+.add-note-form select,
+.add-note-form button {
+  margin-bottom: 10px;
+}
+
+#addNoteBtn {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 10px;
+}
+
+#addNoteBtn:hover {
+  background-color: var(--secondary-color);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+#addNoteBtn:active {
+  transform: translateY(-1px);
+}
+
+/* Calendar view toggle */
+.calendar-view-toggle {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  gap: 15px;
+}
+
+.view-toggle-btn {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.view-toggle-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.view-toggle-btn:hover:not(.active) {
+  background-color: var(--primary-color-light);
+  transform: translateY(-2px);
+}
+
+/* Recurring note styling */
+.recurring-note {
+  border-left: 4px solid var(--secondary-color);
+}
+
+.recurring-note:before {
+  content: '🔄';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.one-time-note {
+  border-left: 4px solid var(--primary-color);
+}
+
+/* Date and time container */
+.date-time-container {
+  margin: 15px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background-color: var(--primary-color-light);
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
+  position: relative;
+  z-index: 1;
+}
+
+.date-time-container:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Note meta */
+.note-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+  color: var(--secondary-color);
+  flex-wrap: wrap;
+}
+
+.note-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: fadeSlideIn 0.4s ease-out;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.note-meta .icon {
+  font-size: 1.1rem;
+}
+
+.note-meta-date {
+  background-color: var(--primary-color-light);
+  padding: 5px 10px;
+  border-radius: 20px;
+  transition: background-color 0.3s;
+}
+
+.note-meta-recurring {
+  background-color: rgba(140, 142, 255, 0.2);
+  padding: 5px 10px;
+  border-radius: 20px;
+  transition: background-color 0.3s;
+}
+
+/* Note edit controls */
+.note-edit-controls {
+  display: none;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 12px;
+  padding: 15px;
+  background-color: var(--primary-color-light);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.edit-day-select,
+.edit-date-input,
+.edit-time-input {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  transition: all 0.3s;
+}
+
+.edit-note {
+  background: transparent;
+  color: var(--text-color);
+  border: none;
+  font-size: 20px;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.edit-note:hover {
+  background-color: var(--primary-color-light);
+  color: var(--primary-color);
+  transform: rotate(15deg);
+}
+
+/* Event type styling */
+.one-time-event {
+  background-color: var(--primary-color);
+  border-left: 4px solid var(--primary-color);
+}
+
+.recurring-event {
+  background-color: var(--secondary-color);
+  border-left: 4px solid var(--secondary-color);
+  opacity: 0.9;
+}
+
+/* Simple time selector with buttons */
+.quick-time-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.time-btn {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.time-btn:hover {
+  background-color: var(--primary-color-light);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.time-btn.selected {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  transform: scale(1.05);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.time-period-selector {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.time-period-btn {
+  flex: 1;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.95em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.time-period-btn.selected {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Simplified date selector */
+.simple-date-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.simple-date-selector label {
+  min-width: 80px;
+  font-weight: 500;
+}
+
+/* Custom date picker */
+.custom-date-picker {
+  display: none;
+  position: absolute;
+  z-index: 1000;
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  padding: 20px;
+  width: 350px;
+  animation: fadeIn 0.3s ease;
+  border: 1px solid var(--border-color);
+}
+
+.custom-date-picker.open {
+  display: block;
+}
+
+.date-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.month-nav-btn {
+  background: none;
+  color: var(--text-color);
+  font-size: 1.5rem;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.month-nav-btn:hover {
+  background-color: var(--primary-color-light);
+  transform: translateY(0);
+}
+
+.weekdays-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.weekday {
+  text-align: center;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--text-color);
+  opacity: 0.7;
+  padding: 3px 0;
+}
+
+.month-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.day-button {
+  background: none;
+  color: var(--text-color);
+  border: none;
+  height: 36px;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.day-button:hover:not(.outside-month):not(.selected-day) {
+  background-color: var(--primary-color-light);
+}
+
+.day-button.today {
+  border: 1px solid var(--primary-color);
+  font-weight: bold;
+}
+
+.day-button.selected-day {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.day-button.outside-month {
+  color: var(--text-color);
+  opacity: 0.3;
+}
+
+.date-picker-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 15px;
+  gap: 10px;
+}
+
+/* Input Toggle */
+.date-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+  cursor: pointer;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.3s;
+  padding: 5px;
+  border-radius: 50%;
+}
+
+.date-toggle-btn:hover {
+  background-color: var(--primary-color-light);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.date-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* More visible recurring checkbox */
+.recurring-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s;
+}
+
+.recurring-option:hover {
+  background-color: var(--primary-color-light);
+  transform: translateY(-2px);
+}
+
+.recurring-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+}
+
+.recurring-option label {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* Animation for showing calendar events */
+.calendar-day:hover .calendar-event {
+  transform: translateX(5px);
+}
+
+.calendar-day:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Smooth animations for inputs/buttons */
+input, button, .date-time-container {
+  will-change: transform, opacity, box-shadow;
+}
+
+/* App logo and icon styling */
+.app-logo {
+  display: flex;
+  align-items: center;
+}
+
+.app-icon {
+  height: 40px;
+  width: 40px;
+  margin-right: 10px;
+  object-fit: contain;
+  image-rendering: auto;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  filter: contrast(1.05) brightness(1.05);
+}
+
+/* Make month view more compact */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 1rem;
+  width: 100%;
+  max-width: 100%;
+  animation: fadeIn 0.3s ease-out;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.month-day-header {
+  background-color: var(--primary-color-light);
+  color: var(--primary-color);
+  padding: 8px;
+  text-align: center;
+  font-weight: bold;
+  border-radius: 4px 4px 0 0;
+}
+
+.month-title {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  padding: 10px;
+  background-color: var(--primary-color-light);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.month-day {
+  min-height: 100px;
+  background-color: var(--card-bg);
+  border-radius: 6px;
+  padding: 5px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.month-day.has-events {
+  background-color: var(--primary-color-light);
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.month-day.highlighted {
+  box-shadow: 0 0 0 2px var(--primary-color);
+  transform: translateY(-2px);
+  z-index: 1;
+}
+
+.month-day.empty {
+  background-color: transparent;
+  border: none;
+}
+
+.month-day .day-number {
+  font-weight: bold;
+  margin-bottom: 5px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+}
+
+.month-day.today-cell {
+  background-color: var(--calendar-today);
+  border: 2px solid var(--primary-color);
+}
+
+.month-day.today-cell .day-number {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 5px;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.month-event {
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: var(--card-bg);
+  border-left: 3px solid var(--primary-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.month-event:hover {
+  transform: translateX(2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.month-event.recurring-event {
+  border-style: dashed;
+}
+
+.month-event .recurring-icon {
+  font-size: 0.7rem;
+  margin-right: 3px;
+  opacity: 0.7;
+}
+
+.month-event .event-time {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  float: right;
+  margin-left: 5px;
+}
+
+.more-events {
+  font-size: 0.7rem;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  padding: 2px;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.more-events:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Calendar navigation */
+.calendar-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0;
+  gap: 15px;
+}
+
+.view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.view-btn {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.view-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.view-btn:hover:not(.active) {
+  background-color: var(--primary-color-light);
+  transform: translateY(-2px);
+}
+
+/* Time selectors layout */
+.time-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.selector-group {
+  min-width: 100px;
+}
+
+/* Fix toggle button position */
+.toggle-add {
+  position: relative;
+  z-index: 10;
+}
+
+/* Fix calendar in month view */
+.weekdays-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.weekday {
+  padding: 3px;
+  font-size: 0.75rem;
+}
+
+.calendar-day {
+  position: relative;
+}
+
+/* Enable zoom functionality */
+html {
+  zoom: 1;
+}
+
+/* Add zoom functionality */
+body {
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Use the PNG icon instead of SVG */
+.app-icon {
+  height: 40px;
+  width: 40px;
+  margin-right: 0;
+}
+
+/* Two column layout for notes */
+.notes-columns {
+  display: flex;
+  gap: 20px;
+  height: calc(100vh - 200px);
+  overflow: hidden;
+}
+
+.notes-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* For text wrapping */
+  max-height: 100%;
+}
+
+.column-header {
+  font-size: 1rem;
+  margin: 0 0 10px 0;
+  padding: 8px;
+  background-color: var(--primary-color-light);
+  color: var(--text-color);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.notes-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: var(--bg-color-secondary);
+}
+
+/* Date toggle button */
+.toggle-date-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--primary-color-light);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.toggle-date-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.toggle-date-btn .icon {
+  margin-left: 8px;
+}
+
+.date-section {
+  background-color: var(--bg-color-secondary);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 15px;
+  box-shadow: var(--shadow);
+}
+
+.remove-date-btn {
+  margin-left: 10px;
+  padding: 5px 10px;
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.remove-date-btn:hover {
+  background-color: #ff3333;
+}
+
+/* Calendar day containers - progressive sizing */
+.day-column .calendar-day {
+  min-height: 80px;
+  height: auto;
+  overflow-y: visible;
+}
+
+.day-column .calendar-day.has-events {
+  flex-grow: 1;
+  min-height: 80px;
+  height: auto;
+  /* No max-height to allow content to determine height */
+}
+
+/* Improved layout for add note form */
+.add-note-container {
+  margin-bottom: 20px;
+}
+
+.toggle-add-note {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background-color 0.3s;
+}
+
+.toggle-add-note:hover {
+  background-color: var(--primary-color-dark);
+}
+
+.toggle-add-note .plus-icon {
+  font-size: 1.2rem;
+  margin-right: 8px;
+}
+
+.add-note-form {
+  background-color: var(--bg-color-secondary);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+  display: none;
+}
+
+.add-note-form.open {
+  display: block;
+}
+
+.add-btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: background-color 0.3s;
+}
+
+.add-btn:hover {
+  background-color: var(--primary-color-dark);
+}
+
+.nav-btn {
+  background: none;
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 0;
+}
+
+.nav-btn:hover {
+  background-color: var(--primary-color-light);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.nav-btn:active {
+  transform: translateY(0);
+}
+
+/* Color selector */
+.color-selector {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.color-label {
+  margin-right: 10px;
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+.color-options {
+  display: flex;
+  gap: 10px;
+}
+
+.color-option {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid var(--border-color);
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+}
+
+.color-option.selected {
+  border-color: var(--primary-color);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px var(--primary-color-light);
+}
+
+.color-option.default {
+  background-color: var(--note-color-default);
+}
+
+.color-option.blue {
+  background-color: var(--note-color-blue);
+}
+
+.color-option.green {
+  background-color: var(--note-color-green);
+}
+
+.color-option.red {
+  background-color: var(--note-color-red);
+}
+
+.color-option.purple {
+  background-color: var(--note-color-purple);
+}
+
+/* Colored notes */
+.note-card.color-default {
+  background-color: var(--note-color-default);
+}
+
+.note-card.color-blue {
+  background-color: var(--note-color-blue);
+}
+
+.note-card.color-green {
+  background-color: var(--note-color-green);
+}
+
+.note-card.color-red {
+  background-color: var(--note-color-red);
+}
+
+.note-card.color-purple {
+  background-color: var(--note-color-purple);
+}
+
+/* Note card hover - overriding for colored notes */
+.note-card.color-blue:hover,
+.note-card.color-green:hover,
+.note-card.color-red:hover,
+.note-card.color-purple:hover {
+  background-color: var(--primary-color-light);
+}
+
+/* Note action buttons standardized size and appearance */
+.note-actions button,
+.edit-color,
+.calendar-checkbox,
+.delete-note {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background-color: var(--note-color-default);
+  border: 1px solid var(--secondary-color);
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.note-actions button:hover,
+.edit-color:hover,
+.calendar-checkbox:hover,
+.delete-note:hover {
+  background-color: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Note color editor */
+.note-color-editor {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  display: flex;
+  background-color: var(--note-color-default);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  border: 1px solid var(--secondary-color);
+}
+
+/* Ensure calendar events inherit note colors */
+.calendar-event {
+  margin-bottom: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: var(--note-color-default);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  animation: eventSlideIn 0.3s ease-in-out;
+  transition: all 0.2s;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-left: 4px solid var(--primary-color);
+}
+
+/* Colored calendar events */
+.calendar-event.color-default {
+  background-color: var(--note-color-default);
+}
+
+.calendar-event.color-blue {
+  background-color: var(--note-color-blue);
+  border-left-color: #4a89dc;
+}
+
+.calendar-event.color-green {
+  background-color: var(--note-color-green);
+  border-left-color: #3cbc6d;
+}
+
+.calendar-event.color-red {
+  background-color: var(--note-color-red);
+  border-left-color: #e74c3c;
+}
+
+.calendar-event.color-purple {
+  background-color: var(--note-color-purple);
+  border-left-color: #9b59b6;
+}
+
+/* Month view events need specific color styling too */
+.month-event.color-default {
+  background-color: var(--note-color-default);
+}
+
+.month-event.color-blue {
+  background-color: var(--note-color-blue);
+  border-left-color: #4a89dc;
+}
+
+.month-event.color-green {
+  background-color: var(--note-color-green);
+  border-left-color: #3cbc6d;
+}
+
+.month-event.color-red {
+  background-color: var(--note-color-red);
+  border-left-color: #e74c3c;
+}
+
+.month-event.color-purple {
+  background-color: var(--note-color-purple);
+  border-left-color: #9b59b6;
+}
+
+/* Make calendar events more visible on hover */
+.calendar-event:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Note date-time editor */
+.note-date-time-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: var(--primary-color-light);
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 10px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.note-date-time-editor label {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.edit-date-input,
+.edit-time-input {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  transition: all 0.3s;
+}
+
+.edit-date-input:focus,
+.edit-time-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-color-light);
+  outline: none;
+}
+
+.editor-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  gap: 10px;
+}
+
+.primary-btn {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+  flex: 1;
+}
+
+.primary-btn:hover {
+  background-color: var(--secondary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.secondary-btn {
+  background-color: #f87171;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+  flex: 1;
+}
+
+.secondary-btn:hover {
+  background-color: #ef4444;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Calendar button states */
+.calendar-checkbox.has-date {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+/* Improved week view styling */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.day-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 350px;
+  background-color: var(--primary-color-light);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.day-column:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.day-header {
+  text-align: center;
+  font-weight: 500;
+  padding: 0.8rem;
+  border-radius: 8px 8px 0 0;
+  background-color: var(--primary-color-light);
+  color: var(--text-color);
+  transition: background-color 0.3s;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.today-header {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: bold;
+}
+
+.calendar-day {
+  background-color: var(--card-bg);
+  border-radius: 0 0 8px 8px;
+  padding: 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: all 0.3s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) inset;
+}
+
+/* Background mode optimization */
+.background-mode {
+  --anim-duration: 0s !important; /* Disable animations */
+}
+
+.background-mode * {
+  transition: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+
+.background-mode .calendar-event,
+.background-mode .month-event,
+.background-mode .note-card {
+  transition: none !important;
+  transform: none !important;
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+.background-mode .day-column:hover,
+.background-mode .calendar-day:hover,
+.background-mode .note-card:hover,
+.background-mode button:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Enhanced performance for low-end devices */
+@media (max-width: 768px), (max-height: 600px) {
+  /* Reduce animations on small screens or low resolution devices */
+  :root {
+    --anim-duration: 0.15s;
+  }
+  
+  .note-card, .calendar-event, .month-event {
+    animation-duration: 0.2s;
+  }
+  
+  /* Simplified shadows for better performance */
+  .note-card, .day-column, button {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+} 
