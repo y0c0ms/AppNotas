@@ -5,16 +5,18 @@ import authRoutes from './routes/auth.js';
 import syncRoutes from './routes/sync.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { config } from './config.js';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
+import compression, { CompressionOptions } from 'compression';
+import rateLimit, { Options as RateLimitOptions } from 'express-rate-limit';
 
 export const app = express();
 
 app.use(helmet());
 app.use(cors({ origin: config.corsOrigin === '*' ? true : config.corsOrigin, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
-app.use(compression());
-app.use(rateLimit({ windowMs: 60_000, max: 100 }));
+const compOpts: CompressionOptions = {};
+app.use(compression(compOpts) as any);
+const limiter = rateLimit({ windowMs: 60_000, limit: 100 } as RateLimitOptions);
+app.use(limiter as any);
 
 app.get('/v1/health', (_req, res) => res.json({ ok: true }));
 
