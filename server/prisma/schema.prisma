@@ -21,6 +21,7 @@ model User {
   refreshTokens    RefreshToken[]
   changeState      UserChangeState?
   changes          Change[]
+  collaborations   NoteCollaborator[]
 }
 
 model Device {
