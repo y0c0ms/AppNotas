@@ -237,6 +237,7 @@ app.whenReady().then(() => {
   // Ensure data directory exists
   ensureDataDirectory();
   
+  // Create main window before using its webContents
   createWindow();
   createTray();
   
@@ -248,12 +249,34 @@ app.whenReady().then(() => {
   
   // Setup system idle/resume monitoring for resource optimization
   powerMonitor.on('suspend', () => {
+    // Notify renderer to save all data before system suspends
+    if (mainWindow) {
+      mainWindow.webContents.executeJavaScript('window.dispatchEvent(new Event("savebeforeclose"));')
+        .catch(err => console.error('Error saving before suspend:', err));
+    }
     optimizeForBackground();
   });
   
   powerMonitor.on('resume', () => {
     if (mainWindow.isVisible()) {
       optimizeForForeground();
+    }
+  });
+  
+  // Also handle shutdown/reboot events
+  powerMonitor.on('shutdown', (e) => {
+    // Notify renderer to save all data before system shutdown
+    if (mainWindow) {
+      e.preventDefault();
+      mainWindow.webContents.executeJavaScript('window.dispatchEvent(new Event("savebeforeclose"));')
+        .then(() => {
+          // Allow shutdown to continue after saving is complete
+          app.quit();
+        })
+        .catch(err => {
+          console.error('Error saving before shutdown:', err);
+          app.quit();
+        });
     }
   });
   
@@ -302,8 +325,30 @@ app.on('activate', () => {
 });
 
 // Clean up when app is about to quit
-app.on('before-quit', () => {
-  isQuitting = true;
+app.on('before-quit', (event) => {
+  if (mainWindow) {
+    // Tenta salvar notas uma última vez antes de fechar completamente
+    try {
+      isQuitting = true;
+      event.preventDefault();
+      
+      // Executar script para salvar notas
+      mainWindow.webContents.executeJavaScript('window.dispatchEvent(new Event("savebeforeclose"));')
+        .then(() => {
+          // Adicionar um pequeno atraso para garantir que o salvamento seja concluído
+          setTimeout(() => {
+            app.exit(0);
+          }, 500);
+        })
+        .catch(err => {
+          console.error('Erro ao salvar notas antes de fechar:', err);
+          app.exit(0);
+        });
+    } catch (error) {
+      console.error('Erro no evento before-quit:', error);
+      app.exit(0);
+    }
+  }
 });
 
 // Handle IPC events from renderer

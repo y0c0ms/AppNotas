@@ -40,6 +40,19 @@ const confirmDateBtn = document.getElementById('confirmDateBtn');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 
+// Auth UI elements
+const authBar = document.getElementById('authBar');
+const authStatus = document.getElementById('authStatus');
+const signInBtn = document.getElementById('signInBtn');
+const signOutBtn = document.getElementById('signOutBtn');
+const syncNowBtn = document.getElementById('syncNowBtn');
+const authModal = document.getElementById('authModal');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authMode = document.getElementById('authMode');
+const apiBaseInput = document.getElementById('apiBaseInput');
+const authError = document.getElementById('authError');
+
 // State
 let notes = [];
 let draggedNote = null;
@@ -77,6 +90,44 @@ function init() {
   } else {
     selectPeriod('AM');
   }
+  
+  // Set up auto-save interval (a cada 2 minutos)
+  setInterval(() => {
+    saveNotes();
+    console.log('Auto-save das notas executado');
+  }, 2 * 60 * 1000);
+
+  // Prepare sync (auth + migration)
+  try {
+    const { migrate } = require('./data/migrateLocal');
+    migrate();
+  } catch (e) { console.warn('Migration skipped:', e.message); }
+
+  // Background sync every 60s
+  try {
+    const { buildOps, ackApplied, applyServerChange, getCursorStore } = require('./data/repository');
+    const { syncOnceWithRefresh } = require('./data/syncClient');
+    const { refresh } = require('./data/authClient');
+    let accessToken = null;
+    async function syncNow() {
+      const ops = buildOps();
+      if (!accessToken) {
+        try { accessToken = await refresh(); } catch { /* not signed in */ return; }
+      }
+      try {
+        const result = await syncOnceWithRefresh(accessToken, { ops });
+        ackApplied(result.applied || []);
+        (result.changes || []).forEach(applyServerChange);
+        const syncStore = getCursorStore();
+        if (typeof result.newCursor === 'number') syncStore.set('cursor', result.newCursor);
+      } catch (e) {
+        console.warn('Sync error:', e.message);
+        accessToken = null; // force refresh next time
+      }
+    }
+    setInterval(syncNow, 60 * 1000);
+    window.addEventListener('focus', syncNow);
+  } catch (e) { console.warn('Sync init skipped:', e.message); }
 }
 
 // Event Listeners
@@ -187,6 +238,60 @@ function setupEventListeners() {
 
   // Date section toggle
   setupDateToggle();
+
+  // Auth UI listeners
+  if (signInBtn) signInBtn.addEventListener('click', () => {
+    authError.hidden = true;
+    authModal.showModal();
+  });
+  if (document.getElementById('authCancel')) document.getElementById('authCancel').addEventListener('click', () => authModal.close());
+  if (document.getElementById('authSubmit')) document.getElementById('authSubmit').addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      const { register, login, setApiBase, currentIdentity, refresh } = require('./data/authClient');
+      if (apiBaseInput.value) setApiBase(apiBaseInput.value);
+      const email = authEmail.value.trim();
+      const password = authPassword.value;
+      const mode = authMode.value;
+      if (!email || !password) throw new Error('Email and password required');
+      const device = { name: 'Desktop', platform: 'windows' };
+      if (mode === 'register') await register(email, password, device); else await login(email, password, device);
+      await refresh(); // prime access token for first sync
+      const ident = currentIdentity();
+      authStatus.textContent = `Signed in as ${ident.email}`;
+      signInBtn.style.display = 'none';
+      signOutBtn.style.display = '';
+      authModal.close();
+    } catch (err) {
+      authError.textContent = err.message || 'Authentication failed';
+      authError.hidden = false;
+    }
+  });
+  if (signOutBtn) signOutBtn.addEventListener('click', async () => {
+    try {
+      const { logout } = require('./data/authClient');
+      await logout();
+    } finally {
+      authStatus.textContent = 'Not signed in';
+      signInBtn.style.display = '';
+      signOutBtn.style.display = 'none';
+    }
+  });
+  if (syncNowBtn) syncNowBtn.addEventListener('click', async () => {
+    try {
+      const { buildOps, ackApplied, applyServerChange, getCursorStore } = require('./data/repository');
+      const { syncOnceWithRefresh } = require('./data/syncClient');
+      const { refresh } = require('./data/authClient');
+      let accessToken = await refresh();
+      const result = await syncOnceWithRefresh(accessToken, { ops: buildOps() });
+      ackApplied(result.applied || []);
+      (result.changes || []).forEach(applyServerChange);
+      const syncStore = getCursorStore();
+      if (typeof result.newCursor === 'number') syncStore.set('cursor', result.newCursor);
+    } catch (e) {
+      console.warn('Manual sync error:', e.message);
+    }
+  });
 }
 
 // Function to select color
@@ -409,14 +514,90 @@ function toggleDarkMode() {
 
 // Notes Functions
 function loadNotes() {
-  const savedNotes = localStorage.getItem('notes');
-  if (savedNotes) {
-    notes = JSON.parse(savedNotes);
+  try {
+    const savedNotes = localStorage.getItem('notes');
+    
+    if (savedNotes) {
+      try {
+        notes = JSON.parse(savedNotes);
+        
+        // Verificar se o resultado é um array
+        if (!Array.isArray(notes)) {
+          throw new Error('Dados carregados não são um array');
+        }
+        
+        // Limpar possíveis notas corrompidas
+        cleanupCorruptedNotes();
+        console.log(`Notas carregadas com sucesso: ${notes.length}`);
+        return true;
+      } catch (parseError) {
+        console.error('Erro ao analisar notas salvas:', parseError);
+        
+        // Tentar restaurar do backup
+        const backupNotes = localStorage.getItem('notes_backup');
+        if (backupNotes) {
+          try {
+            notes = JSON.parse(backupNotes);
+            if (Array.isArray(notes)) {
+              cleanupCorruptedNotes();
+              console.log(`Notas restauradas do backup: ${notes.length}`);
+              return true;
+            }
+          } catch (backupError) {
+            console.error('Falha ao carregar backup:', backupError);
+          }
+        }
+        
+        // Caso todas as tentativas falhem, iniciar com uma lista vazia
+        notes = [];
+        return false;
+      }
+    } else {
+      notes = [];
+      return true;
+    }
+  } catch (error) {
+    console.error('Erro ao acessar localStorage:', error);
+    notes = [];
+    return false;
   }
 }
 
 function saveNotes() {
-  localStorage.setItem('notes', JSON.stringify(notes));
+  try {
+    if (notes && Array.isArray(notes)) {
+      // Remover possíveis notas inválidas antes de salvar
+      const validNotes = notes.filter(note => note && note.id && typeof note.text === 'string');
+      
+      // Realizar backup da versão anterior em caso de falha
+      const previousNotes = localStorage.getItem('notes');
+      if (previousNotes) {
+        localStorage.setItem('notes_backup', previousNotes);
+      }
+      
+      // Salvar notas atuais
+      localStorage.setItem('notes', JSON.stringify(validNotes));
+      
+      // Salvar timestamp da última gravação
+      localStorage.setItem('notes_last_saved', Date.now());
+      
+      return true;
+    }
+  } catch (error) {
+    console.error('Erro ao salvar notas:', error);
+    
+    // Tentar restaurar do backup em caso de erro
+    const backup = localStorage.getItem('notes_backup');
+    if (backup) {
+      try {
+        localStorage.setItem('notes', backup);
+      } catch (backupError) {
+        console.error('Falha ao restaurar backup:', backupError);
+      }
+    }
+    
+    return false;
+  }
 }
 
 function addNote() {
@@ -1333,6 +1514,24 @@ function cleanupCorruptedNotes() {
 
 // Initialize the app when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
+
+// Save notes when window is closed or page is refreshed
+window.addEventListener('beforeunload', function() {
+  // Force save notes to localStorage before the application closes
+  if (notes && notes.length > 0) {
+    localStorage.setItem('notes', JSON.stringify(notes));
+    console.log('Notas salvas antes de fechar: ' + notes.length);
+  }
+});
+
+// Listen for the custom savebeforeclose event from the main process
+window.addEventListener('savebeforeclose', function() {
+  // Force save to ensure notes are not lost during system shutdown or sleep
+  if (notes && notes.length > 0) {
+    localStorage.setItem('notes', JSON.stringify(notes));
+    console.log('Notas salvas antes de suspensão/desligamento: ' + notes.length);
+  }
+});
 
 // Mouse wheel zoom handling with Ctrl key
 document.addEventListener('wheel', function(event) {

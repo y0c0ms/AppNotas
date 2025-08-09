@@ -21,6 +21,41 @@
   </nav>
   
   <main>
+    <!-- Simple Auth Banner / Controls -->
+    <section id="authBar" class="auth-bar">
+      <div>
+        <span id="authStatus">Not signed in</span>
+      </div>
+      <div class="auth-actions">
+        <button id="signInBtn" class="auth-btn">Sign in</button>
+        <button id="signOutBtn" class="auth-btn" style="display:none">Sign out</button>
+        <button id="syncNowBtn" class="auth-btn">Sync now</button>
+      </div>
+    </section>
+
+    <!-- Sign-in Modal -->
+    <dialog id="authModal">
+      <form method="dialog" class="auth-form">
+        <h3>Sign in</h3>
+        <label>Email <input type="email" id="authEmail" required></label>
+        <label>Password <input type="password" id="authPassword" required></label>
+        <label>Mode
+          <select id="authMode">
+            <option value="login">Login</option>
+            <option value="register">Register</option>
+          </select>
+        </label>
+        <label>API Base (optional)
+          <input type="url" id="apiBaseInput" placeholder="https://appnotas-7pof.onrender.com">
+        </label>
+        <menu>
+          <button id="authCancel" value="cancel">Cancel</button>
+          <button id="authSubmit" value="default">Continue</button>
+        </menu>
+        <p id="authError" class="auth-error" hidden></p>
+      </form>
+    </dialog>
+    
     <section id="notesView" class="view active">
       <div class="add-note-container">
         <button id="toggleAddNote" class="toggle-add-note">
