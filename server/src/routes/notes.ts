@@ -9,10 +9,7 @@ router.get('/', requireAuth, async (req, res, next) => {
   try {
     const userId = req.auth!.userId;
     const own = await prisma.note.findMany({ where: { userId, deletedAt: null }, orderBy: { updatedAt: 'desc' } });
-    const shared = await prisma.note.findMany({
-      where: { deletedAt: null, collaborators: { some: { userId } } },
-      orderBy: { updatedAt: 'desc' }
-    });
+    const shared = await prisma.note.findMany({ where: { deletedAt: null, collaborators: { some: { userId } } }, orderBy: { updatedAt: 'desc' } });
     res.json({ own, shared });
   } catch (e) { next(e); }
 });
