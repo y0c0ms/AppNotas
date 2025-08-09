@@ -58,10 +58,20 @@ model Note {
   contentNonce           String?
   contentVersion         Int?
   contentHash            String?
+  isShared               Boolean           @default(false)
+  collaborators          NoteCollaborator[]
   @@index([userId, updatedAt])
   @@index([userId, deletedAt])
 }
+model NoteCollaborator {
+  noteId String
+  userId String
+  note   Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@id([noteId, userId])
+  @@index([userId])
+}
 model UserChangeState {
   userId        String  @id
   user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
