@@ -41,13 +41,14 @@ export async function sync(userId: string, body: { clientCursor?: number; device
         if (incomingUpdated <= serverUpdated) {
           conflicts.push({ id: existing.id, serverVersion: serverUpdated, note: existing });
         } else {
-          const updated = await tx.note.update({ where: { id: existing.id }, data: { title: op.data?.title ?? existing.title, content: op.data?.content ?? existing.content, color: op.data?.color ?? existing.color, posX: op.data?.position?.x ?? existing.posX, posY: op.data?.position?.y ?? existing.posY, width: op.data?.size?.w ?? existing.width, height: op.data?.size?.h ?? existing.height, zIndex: op.data?.zIndex ?? existing.zIndex, pinned: op.data?.pinned ?? existing.pinned, archived: op.data?.archived ?? existing.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : existing.dueAt, recurrenceRule: op.data?.recurrenceRule ?? existing.recurrenceRule, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : existing.reminderAt, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : existing.deletedAt, lastModifiedByDeviceId: deviceId || existing.lastModifiedByDeviceId } });
+          const updated = await tx.note.update({ where: { id: existing.id }, data: { title: op.data?.title ?? existing.title, content: op.data?.content ?? existing.content, color: op.data?.color ?? existing.color, posX: op.data?.position?.x ?? existing.posX, posY: op.data?.position?.y ?? existing.posY, width: op.data?.size?.w ?? existing.width, height: op.data?.size?.h ?? existing.height, zIndex: op.data?.zIndex ?? existing.zIndex, pinned: op.data?.pinned ?? existing.pinned, archived: op.data?.archived ?? existing.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : existing.dueAt, recurrenceRule: op.data?.recurrenceRule ?? existing.recurrenceRule, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : existing.reminderAt, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : existing.deletedAt, lastModifiedByDeviceId: deviceId || existing.lastModifiedByDeviceId, isShared: op.data?.isShared ?? existing.isShared } });
           const change = await tx.change.create({ data: { userId, entity: 'note', entityId: updated.id, op: 'upsert', deviceId: deviceId || null, snapshotJson: JSON.stringify(updated) } });
           applied.push({ id: updated.id, serverChangeSeq: Number(change.id), updatedAt: updated.updatedAt.toISOString() });
         }
       }
     }
 
+    // Include notes shared with this user (collaborator rows). For MVP, we stream own changes; shared reads handled client via dedicated fetch later.
     const changes = await tx.change.findMany({ where: { userId, id: { gt: BigInt(clientCursor) } }, orderBy: { id: 'asc' }, take: 500 });
     const newCursor = changes.length ? Number(changes[changes.length - 1].id) : clientCursor;
     return { applied, conflicts, changes: changes.map(c => ({ serverChangeSeq: Number(c.id), type: c.op, entity: c.entity, id: c.entityId, note: JSON.parse(c.snapshotJson) })), newCursor };
