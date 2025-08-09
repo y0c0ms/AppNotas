@@ -31,7 +31,14 @@ export async function sync(userId: string, body: { clientCursor?: number; device
       }
       // upsert
       if (!existing) {
-        const created = await tx.note.create({ data: { userId, id: op.id, title: op.data?.title || '', content: op.data?.content || '', color: op.data?.color || '#fff59d', posX: op.data?.position?.x || 0, posY: op.data?.position?.y || 0, width: op.data?.size?.w || 300, height: op.data?.size?.h || 200, zIndex: op.data?.zIndex || 0, pinned: !!op.data?.pinned, archived: !!op.data?.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : null, recurrenceRule: op.data?.recurrenceRule || null, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : null, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : null, lastModifiedByDeviceId: deviceId || null } });
+        const created = await tx.note.create({ data: { userId, id: op.id, title: op.data?.title || '', content: op.data?.content || '', color: op.data?.color || '#fff59d', posX: op.data?.position?.x || 0, posY: op.data?.position?.y || 0, width: op.data?.size?.w || 300, height: op.data?.size?.h || 200, zIndex: op.data?.zIndex || 0, pinned: !!op.data?.pinned, archived: !!op.data?.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : null, recurrenceRule: op.data?.recurrenceRule || null, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : null, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : null, lastModifiedByDeviceId: deviceId || null, isShared: !!op.data?.isShared } });
+        // Add collaborators if provided (by email)
+        if (Array.isArray(op.data?.collaborators) && op.data.collaborators.length > 0) {
+          const users = await tx.user.findMany({ where: { email: { in: op.data.collaborators as string[] } }, select: { id: true } });
+          if (users.length) {
+            await tx.noteCollaborator.createMany({ data: users.map(u => ({ noteId: created.id, userId: u.id })), skipDuplicates: true });
+          }
+        }
         const change = await tx.change.create({ data: { userId, entity: 'note', entityId: created.id, op: 'upsert', deviceId: deviceId || null, snapshotJson: JSON.stringify(created) } });
         applied.push({ id: created.id, serverChangeSeq: Number(change.id), updatedAt: created.updatedAt.toISOString() });
       } else {
@@ -42,6 +49,12 @@ export async function sync(userId: string, body: { clientCursor?: number; device
           conflicts.push({ id: existing.id, serverVersion: serverUpdated, note: existing });
         } else {
           const updated = await tx.note.update({ where: { id: existing.id }, data: { title: op.data?.title ?? existing.title, content: op.data?.content ?? existing.content, color: op.data?.color ?? existing.color, posX: op.data?.position?.x ?? existing.posX, posY: op.data?.position?.y ?? existing.posY, width: op.data?.size?.w ?? existing.width, height: op.data?.size?.h ?? existing.height, zIndex: op.data?.zIndex ?? existing.zIndex, pinned: op.data?.pinned ?? existing.pinned, archived: op.data?.archived ?? existing.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : existing.dueAt, recurrenceRule: op.data?.recurrenceRule ?? existing.recurrenceRule, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : existing.reminderAt, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : existing.deletedAt, lastModifiedByDeviceId: deviceId || existing.lastModifiedByDeviceId, isShared: op.data?.isShared ?? existing.isShared } });
+          if (Array.isArray(op.data?.collaborators) && op.data.collaborators.length > 0) {
+            const users = await tx.user.findMany({ where: { email: { in: op.data.collaborators as string[] } }, select: { id: true } });
+            if (users.length) {
+              await tx.noteCollaborator.createMany({ data: users.map(u => ({ noteId: updated.id, userId: u.id })), skipDuplicates: true });
+            }
+          }
           const change = await tx.change.create({ data: { userId, entity: 'note', entityId: updated.id, op: 'upsert', deviceId: deviceId || null, snapshotJson: JSON.stringify(updated) } });
           applied.push({ id: updated.id, serverChangeSeq: Number(change.id), updatedAt: updated.updatedAt.toISOString() });
         }
