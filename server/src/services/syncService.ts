@@ -20,44 +20,53 @@ export async function sync(userId: string, body: { clientCursor?: number; device
 
     for (const op of ops) {
       if (op.entity !== 'note') continue;
-      const existing = await tx.note.findFirst({ where: { userId, id: op.id } });
+      // Owner note (for delete and create)
+      const ownerNote = await tx.note.findFirst({ where: { userId, id: op.id } });
+      // Accessible note: owner or collaborator
+      const accessibleNote = ownerNote ?? await tx.note.findFirst({ where: { id: op.id, collaborators: { some: { userId } } } });
+
       if (op.type === 'delete') {
-        if (existing) {
-          const updated = await tx.note.update({ where: { id: existing.id }, data: { deletedAt: new Date(op.updatedAt), lastModifiedByDeviceId: deviceId } });
+        // Only owner can delete
+        if (ownerNote) {
+          const updated = await tx.note.update({ where: { id: ownerNote.id }, data: { deletedAt: new Date(op.updatedAt), lastModifiedByDeviceId: deviceId } });
           const change = await tx.change.create({ data: { userId, entity: 'note', entityId: updated.id, op: 'delete', deviceId: deviceId || null, snapshotJson: JSON.stringify(updated) } });
           applied.push({ id: updated.id, serverChangeSeq: Number(change.id), updatedAt: updated.updatedAt.toISOString() });
         }
         continue;
       }
       // upsert
-      if (!existing) {
-        const created = await tx.note.create({ data: { userId, id: op.id, title: op.data?.title || '', content: op.data?.content || '', color: op.data?.color || '#fff59d', posX: op.data?.position?.x || 0, posY: op.data?.position?.y || 0, width: op.data?.size?.w || 300, height: op.data?.size?.h || 200, zIndex: op.data?.zIndex || 0, pinned: !!op.data?.pinned, archived: !!op.data?.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : null, recurrenceRule: op.data?.recurrenceRule || null, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : null, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : null, lastModifiedByDeviceId: deviceId || null, isShared: !!op.data?.isShared } });
-        // Add collaborators if provided (by email)
-        if (Array.isArray(op.data?.collaborators) && op.data.collaborators.length > 0) {
-          const users = await tx.user.findMany({ where: { email: { in: op.data.collaborators as string[] } }, select: { id: true } });
-          if (users.length) {
-            await tx.noteCollaborator.createMany({ data: users.map(u => ({ noteId: created.id, userId: u.id })), skipDuplicates: true });
-          }
-        }
-        const change = await tx.change.create({ data: { userId, entity: 'note', entityId: created.id, op: 'upsert', deviceId: deviceId || null, snapshotJson: JSON.stringify(created) } });
-        applied.push({ id: created.id, serverChangeSeq: Number(change.id), updatedAt: created.updatedAt.toISOString() });
-      } else {
-        // LWW based on updatedAt; server's existing wins if newer
-        const incomingUpdated = new Date(op.updatedAt).getTime();
-        const serverUpdated = new Date(existing.updatedAt).getTime();
-        if (incomingUpdated <= serverUpdated) {
-          conflicts.push({ id: existing.id, serverVersion: serverUpdated, note: existing });
-        } else {
-          const updated = await tx.note.update({ where: { id: existing.id }, data: { title: op.data?.title ?? existing.title, content: op.data?.content ?? existing.content, color: op.data?.color ?? existing.color, posX: op.data?.position?.x ?? existing.posX, posY: op.data?.position?.y ?? existing.posY, width: op.data?.size?.w ?? existing.width, height: op.data?.size?.h ?? existing.height, zIndex: op.data?.zIndex ?? existing.zIndex, pinned: op.data?.pinned ?? existing.pinned, archived: op.data?.archived ?? existing.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : existing.dueAt, recurrenceRule: op.data?.recurrenceRule ?? existing.recurrenceRule, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : existing.reminderAt, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : existing.deletedAt, lastModifiedByDeviceId: deviceId || existing.lastModifiedByDeviceId, isShared: op.data?.isShared ?? existing.isShared } });
+      if (!accessibleNote) {
+        // Create only allowed for owner
+        if (!ownerNote) {
+          // Create new note for owner
+          const created = await tx.note.create({ data: { userId, id: op.id, title: op.data?.title || '', content: op.data?.content || '', color: op.data?.color || '#fff59d', posX: op.data?.position?.x || 0, posY: op.data?.position?.y || 0, width: op.data?.size?.w || 300, height: op.data?.size?.h || 200, zIndex: op.data?.zIndex || 0, pinned: !!op.data?.pinned, archived: !!op.data?.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : null, recurrenceRule: op.data?.recurrenceRule || null, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : null, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : null, lastModifiedByDeviceId: deviceId || null, isShared: !!op.data?.isShared } });
           if (Array.isArray(op.data?.collaborators) && op.data.collaborators.length > 0) {
             const users = await tx.user.findMany({ where: { email: { in: op.data.collaborators as string[] } }, select: { id: true } });
             if (users.length) {
-              await tx.noteCollaborator.createMany({ data: users.map(u => ({ noteId: updated.id, userId: u.id })), skipDuplicates: true });
+              await tx.noteCollaborator.createMany({ data: users.map(u => ({ noteId: created.id, userId: u.id })), skipDuplicates: true });
             }
           }
-          const change = await tx.change.create({ data: { userId, entity: 'note', entityId: updated.id, op: 'upsert', deviceId: deviceId || null, snapshotJson: JSON.stringify(updated) } });
-          applied.push({ id: updated.id, serverChangeSeq: Number(change.id), updatedAt: updated.updatedAt.toISOString() });
+          const change = await tx.change.create({ data: { userId, entity: 'note', entityId: created.id, op: 'upsert', deviceId: deviceId || null, snapshotJson: JSON.stringify(created) } });
+          applied.push({ id: created.id, serverChangeSeq: Number(change.id), updatedAt: created.updatedAt.toISOString() });
         }
+        continue;
+      }
+      // Update (owner or collaborator)
+      const incomingUpdated = new Date(op.updatedAt).getTime();
+      const serverUpdated = new Date(accessibleNote.updatedAt).getTime();
+      if (incomingUpdated <= serverUpdated) {
+        conflicts.push({ id: accessibleNote.id, serverVersion: serverUpdated, note: accessibleNote });
+      } else {
+        const updated = await tx.note.update({ where: { id: accessibleNote.id }, data: { title: op.data?.title ?? accessibleNote.title, content: op.data?.content ?? accessibleNote.content, color: op.data?.color ?? accessibleNote.color, posX: op.data?.position?.x ?? accessibleNote.posX, posY: op.data?.position?.y ?? accessibleNote.posY, width: op.data?.size?.w ?? accessibleNote.width, height: op.data?.size?.h ?? accessibleNote.height, zIndex: op.data?.zIndex ?? accessibleNote.zIndex, pinned: op.data?.pinned ?? accessibleNote.pinned, archived: op.data?.archived ?? accessibleNote.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : accessibleNote.dueAt, recurrenceRule: op.data?.recurrenceRule ?? accessibleNote.recurrenceRule, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : accessibleNote.reminderAt, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : accessibleNote.deletedAt, lastModifiedByDeviceId: deviceId || accessibleNote.lastModifiedByDeviceId, isShared: op.data?.isShared ?? accessibleNote.isShared } });
+        if (Array.isArray(op.data?.collaborators) && op.data.collaborators.length > 0) {
+          const users = await tx.user.findMany({ where: { email: { in: op.data.collaborators as string[] } }, select: { id: true } });
+          if (users.length) {
+            await tx.noteCollaborator.createMany({ data: users.map(u => ({ noteId: updated.id, userId: u.id })), skipDuplicates: true });
+          }
+        }
+        // Record change under owner's userId so owner stream sees it
+        const change = await tx.change.create({ data: { userId: accessibleNote.userId, entity: 'note', entityId: updated.id, op: 'upsert', deviceId: deviceId || null, snapshotJson: JSON.stringify(updated) } });
+        applied.push({ id: updated.id, serverChangeSeq: Number(change.id), updatedAt: updated.updatedAt.toISOString() });
       }
     }
 
