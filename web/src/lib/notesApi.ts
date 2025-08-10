@@ -21,12 +21,14 @@ type ServerNote = {
   deletedAt?: string | null
   updatedAt: string
   isShared: boolean
+  user?: { email: string }
 }
 
 function mapServerNote(n: ServerNote): NoteRecord {
   return {
     id: n.id,
     userId: n.userId,
+    ownerEmail: n.user?.email,
     title: n.title,
     content: n.content,
     color: n.color,
