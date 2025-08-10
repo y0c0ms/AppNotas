@@ -24,7 +24,7 @@ export default function LoginPage() {
 
   return (
     <main>
-      <div className="auth-view" style={{ display: 'block' }}>
+      <div className="auth-view" id="authView" style={{ display: 'block' }}>
         <div className="auth-card">
           <h2>Welcome back</h2>
           <div className="auth-sub">Sign in to continue</div>
@@ -37,7 +37,7 @@ export default function LoginPage() {
               <span>Password</span>
               <input placeholder="••••••••" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </label>
-            {error && <div className="auth-error">{error}</div>}
+            {error && <div className="auth-error" id="authError">{error}</div>}
             <div className="auth-actions-row">
               <button className="primary-btn" disabled={loading} type="submit">{loading ? 'Signing in…' : 'Login'}</button>
               <a className="secondary-btn" href="/register" style={{ textAlign: 'center', textDecoration: 'none' }}>Register</a>

@@ -5,7 +5,10 @@ export async function updateSharing(
   opts: { isShared?: boolean; addCollaborators?: string[]; removeCollaborators?: string[] }
 ) {
   const api = getApi()
-  await api.post(`notes/${noteId}/share`, { json: opts })
+  await api.post(`notes/${noteId}/share`, { json: opts }).json<any>().catch((e: any) => {
+    console.warn('updateSharing failed', e?.message)
+    throw e
+  })
 }
 
 export async function leaveNote(noteId: string) {

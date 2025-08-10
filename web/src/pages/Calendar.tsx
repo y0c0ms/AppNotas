@@ -1,12 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import Header from '../components/Header'
 import '../clean.css'
-import { db } from '../lib/db'
+import { listLocalNotes } from '../lib/notes'
 
 export default function CalendarPage() {
   const [view, setView] = useState<'week' | 'month'>('week')
   const [notes, setNotes] = useState<any[]>([])
-  useEffect(() => { db.notes.toArray().then(setNotes) }, [])
+  async function reload() {
+    const own = await listLocalNotes()
+    setNotes(own.filter(n => !!n.dueAt))
+  }
+  useEffect(() => {
+    reload()
+  }, [])
   return (
     <div>
       <Header />
@@ -35,7 +41,7 @@ function WeekGrid({ notes }: { notes: any[] }) {
   }, [])
   const byDay = (d: Date) => {
     const key = d.toISOString().split('T')[0]
-    return notes.filter(n => n.dueAt && n.dueAt.slice(0,10) === key)
+    return notes.filter(n => n.dueAt && new Date(n.dueAt).toISOString().slice(0,10) === key)
   }
   return (
     <div className="week-grid">
@@ -63,7 +69,7 @@ function MonthGrid({ notes }: { notes: any[] }) {
   for (let i = 1; i <= lastDay.getDate(); i++) days.push(new Date(year, month, i))
   const byDay = (d: Date) => {
     const key = d.toISOString().split('T')[0]
-    return notes.filter(n => n.dueAt && n.dueAt.slice(0,10) === key)
+    return notes.filter(n => n.dueAt && new Date(n.dueAt).toISOString().slice(0,10) === key)
   }
   return (
     <div className="month-grid">

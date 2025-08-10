@@ -38,4 +38,28 @@ export function insertAtCursor(ta: HTMLTextAreaElement, text: string) {
   ta.focus()
 }
 
+// Optional: checkbox task formatting
+export function toggleTaskAtCursor(ta: HTMLTextAreaElement) {
+  const start = ta.selectionStart || 0
+  const lineStart = ta.value.lastIndexOf('\n', start - 1) + 1
+  const lineEndIdx = ta.value.indexOf('\n', start)
+  const lineEnd = lineEndIdx === -1 ? ta.value.length : lineEndIdx
+  const line = ta.value.slice(lineStart, lineEnd)
+  const checked = /^\s*\[x\]\s/i.test(line)
+  let newLine: string
+  if (checked) {
+    newLine = line.replace(/^\s*\[x\]\s/i, '[ ] ')
+  } else if (/^\s*\[\s?\]\s/i.test(line)) {
+    newLine = line.replace(/^\s*\[\s?\]\s/i, '[x] ')
+  } else {
+    newLine = `[ ] ${line}`
+  }
+  const before = ta.value.slice(0, lineStart)
+  const after = ta.value.slice(lineEnd)
+  ta.value = before + newLine + after
+  const newPos = Math.min(before.length + newLine.length, ta.value.length)
+  ta.setSelectionRange(newPos, newPos)
+  ta.focus()
+}
+
 

@@ -49,9 +49,8 @@ function mapServerNote(n: ServerNote): NoteRecord {
 }
 
 export async function fetchAndCacheNotes() {
-  const api = getApi()
-  const res = await api.get('notes').json<{ own: ServerNote[]; shared: ServerNote[] }>()
-  const all = [...(res.own || []), ...(res.shared || [])]
+  const { own, shared } = await fetchNotesLists()
+  const all = [...(own || []), ...(shared || [])]
   const s = await getSession()
   await db.transaction('rw', db.notes, async () => {
     for (const n of all) {
@@ -61,6 +60,12 @@ export async function fetchAndCacheNotes() {
     }
   })
   return all.length
+}
+
+export async function fetchNotesLists() {
+  const api = getApi()
+  const res = await api.get('notes').json<{ own: ServerNote[]; shared: ServerNote[] }>()
+  return res
 }
 
 

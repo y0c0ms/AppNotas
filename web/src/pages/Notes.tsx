@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { listLocalNotes, upsertLocalNote, deleteLocalNote } from '../lib/notes'
 import { fetchAndCacheNotes } from '../lib/notesApi'
 import { updateSharing } from '../lib/shareApi'
 import { useToast } from '../components/Toast'
 import Header from '../components/Header'
+import { syncNow } from '../lib/sync'
 import '../clean.css'
+import { insertPrefixAtCursor, continueMarkdownListOnEnter, toggleTaskAtCursor } from '../lib/md'
 
 export default function NotesPage() {
   const [notes, setNotes] = useState<any[]>([])
@@ -14,6 +16,13 @@ export default function NotesPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newContent, setNewContent] = useState('')
+  const [shareChecked, setShareChecked] = useState(false)
+  const [shareEmails, setShareEmails] = useState('')
+  const addTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+  // share editor per-note
+  const [shareEditId, setShareEditId] = useState<string | null>(null)
+  const [shareEditChecked, setShareEditChecked] = useState(false)
+  const [shareEditEmails, setShareEditEmails] = useState('')
   const colorOptions = ['#ffffff', '#deeaff', '#ddffe7', '#ffdddd', '#eddeff']
   const nextColor = (current?: string) => {
     const i = Math.max(0, colorOptions.indexOf(current || '#ffffff'))
@@ -44,12 +53,32 @@ export default function NotesPage() {
           </button>
           <div className={`add-note-form ${showAdd ? 'open' : ''}`}>
             <input id="noteTitleInput" placeholder="Title" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
-            <textarea id="noteInput" placeholder="Write your note..." value={newContent} onChange={e => setNewContent(e.target.value)} />
+            <div className="note-input-toolbar">
+              <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '• ') }}>•</button>
+              <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '1. ') }}>1.</button>
+              <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) toggleTaskAtCursor(addTextareaRef.current) }}>☑</button>
+            </div>
+            <textarea ref={addTextareaRef} id="noteInput" placeholder="Write your note..." value={newContent} onChange={e => setNewContent(e.target.value)} onKeyDown={continueMarkdownListOnEnter as any} />
+            <div className="share-toggle">
+              <input id="shareNoteCheck" type="checkbox" checked={shareChecked} onChange={e => setShareChecked(e.target.checked)} /> Share this note
+            </div>
+            <div className="share-row" id="shareEmailsRow" style={{ display: shareChecked ? 'block' : 'none' }}>
+              <input id="shareEmails" placeholder="Collaborator emails, comma separated" value={shareEmails} onChange={e => setShareEmails(e.target.value)} />
+            </div>
             <div className="auth-actions-row">
               <button className="primary-btn add-btn" onClick={async () => {
                 const id = crypto.randomUUID()
-                await upsertLocalNote({ id, title: newTitle || 'Untitled', content: newContent })
-                setNewTitle(''); setNewContent(''); setShowAdd(false); await refresh(); show('Note added', 'success')
+                const isShared = shareChecked
+                const collaborators = shareEmails.split(',').map(s => s.trim()).filter(Boolean)
+                await upsertLocalNote({ id, title: newTitle || 'Untitled', content: newContent, isShared })
+                if (isShared && collaborators.length) {
+                  try {
+                    // Ensure the note exists on the server before sharing
+                    await syncNow()
+                    await updateSharing(id, { isShared: true, addCollaborators: collaborators })
+                  } catch {}
+                }
+                setNewTitle(''); setNewContent(''); setShareChecked(false); setShareEmails(''); setShowAdd(false); await refresh(); show('Note added', 'success')
               }}>Add</button>
             </div>
           </div>
@@ -59,7 +88,7 @@ export default function NotesPage() {
           <div className="notes-column">
             <div className="column-header">Notes without dates</div>
             <div className="notes-list">
-              {notes.filter(n => !n.dueAt).map(n => (
+              {notes.filter(n => !n.dueAt && !n.isShared).map(n => (
                 <div key={n.id} className="note-card" style={{ backgroundColor: n.color }}>
                   <div className="note-content">
                     <div className="note-text" style={{ width: '100%' }}>
@@ -68,10 +97,30 @@ export default function NotesPage() {
                     </div>
                     <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
                       <button title="Color" onClick={async () => { await upsertLocalNote({ id: n.id, color: nextColor(n.color) }); await refresh() }}>🎨</button>
-                      <button title="Share" onClick={async () => { try { await updateSharing(n.id, { isShared: !n.isShared }); show(n.isShared ? 'Sharing off' : 'Sharing on', 'success') } catch { show('Failed to toggle share', 'error') } await refresh() }}>🤝</button>
-                      <button className="delete-note" title="Delete" onClick={async () => { await deleteLocalNote(n.id); await refresh(); show('Note moved to trash', 'success') }}>🗑</button>
+                      <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
+                      <button className="delete-note" title="Delete" onClick={async () => {
+                        await deleteLocalNote(n.id)
+                        // enqueue delete op already done in deleteLocalNote
+                        await syncNow()
+                        await refresh()
+                        show('Note moved to trash', 'success')
+                      }}>🗑</button>
                     </div>
                   </div>
+                {shareEditId === n.id && (
+                  <div className="note-edit-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+                    <label className="share-toggle"><input type="checkbox" checked={shareEditChecked} onChange={e => setShareEditChecked(e.target.checked)} /> Share this note</label>
+                    {shareEditChecked && (
+                      <div className="share-row"><input placeholder="Collaborator emails, comma separated" value={shareEditEmails} onChange={e => setShareEditEmails(e.target.value)} /></div>
+                    )}
+                    <button className="primary-btn" onClick={async () => {
+                      const emails = shareEditEmails.split(',').map(s => s.trim()).filter(Boolean)
+                      try { await updateSharing(n.id, { isShared: shareEditChecked, addCollaborators: emails }); show('Sharing updated', 'success') } catch { show('Share update failed', 'error') }
+                      finally { setShareEditId(null); await refresh() }
+                    }}>Save</button>
+                    <button className="secondary-btn" onClick={() => setShareEditId(null)}>Close</button>
+                  </div>
+                )}
                 </div>
               ))}
             </div>
@@ -79,7 +128,7 @@ export default function NotesPage() {
           <div className="notes-column">
             <div className="column-header">Notes with dates</div>
             <div className="notes-list">
-              {notes.filter(n => !!n.dueAt).map(n => (
+              {notes.filter(n => !!n.dueAt && !n.isShared).map(n => (
                 <div key={n.id} className="note-card" style={{ backgroundColor: n.color }}>
                   <div className="note-content">
                     <div className="note-text" style={{ width: '100%' }}>
@@ -88,8 +137,13 @@ export default function NotesPage() {
                     </div>
                     <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
                       <button title="Color" onClick={async () => { await upsertLocalNote({ id: n.id, color: nextColor(n.color) }); await refresh() }}>🎨</button>
-                      <button title="Share" onClick={async () => { try { await updateSharing(n.id, { isShared: !n.isShared }); show(n.isShared ? 'Sharing off' : 'Sharing on', 'success') } catch { show('Failed to toggle share', 'error') } await refresh() }}>🤝</button>
-                      <button className="delete-note" title="Delete" onClick={async () => { await deleteLocalNote(n.id); await refresh(); show('Note moved to trash', 'success') }}>🗑</button>
+                      <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
+                      <button className="delete-note" title="Delete" onClick={async () => {
+                        await deleteLocalNote(n.id)
+                        await syncNow()
+                        await refresh()
+                        show('Note moved to trash', 'success')
+                      }}>🗑</button>
                     </div>
                   </div>
                   <div className="note-meta">
@@ -97,6 +151,20 @@ export default function NotesPage() {
                       {formatDateTime(n.dueAt as string)}
                     </div>
                   </div>
+                  {shareEditId === n.id && (
+                    <div className="note-edit-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+                      <label className="share-toggle"><input type="checkbox" checked={shareEditChecked} onChange={e => setShareEditChecked(e.target.checked)} /> Share this note</label>
+                      {shareEditChecked && (
+                        <div className="share-row"><input placeholder="Collaborator emails, comma separated" value={shareEditEmails} onChange={e => setShareEditEmails(e.target.value)} /></div>
+                      )}
+                      <button className="primary-btn" onClick={async () => {
+                        const emails = shareEditEmails.split(',').map(s => s.trim()).filter(Boolean)
+                        try { await updateSharing(n.id, { isShared: shareEditChecked, addCollaborators: emails }); show('Sharing updated', 'success') } catch { show('Share update failed', 'error') }
+                        finally { setShareEditId(null); await refresh() }
+                      }}>Save</button>
+                      <button className="secondary-btn" onClick={() => setShareEditId(null)}>Close</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -11,8 +11,9 @@ export async function syncNow() {
   const ops = await db.pendingOps.toArray()
   try {
     const res = await api.post('sync', { json: { clientCursor: state.clientCursor, ops } }).json<any>()
-    for (const a of res.applied as any[]) {
-      await db.pendingOps.delete(a.id)
+    const appliedIds = new Set((res.applied as any[]).map((a: any) => a.id))
+    for (const op of ops) {
+      if (appliedIds.has(op.id)) await db.pendingOps.delete(op.id)
     }
     for (const ch of res.changes as any[]) {
       if (ch.entity !== 'note') continue

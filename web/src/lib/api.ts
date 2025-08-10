@@ -3,7 +3,7 @@ import Ky, { type KyInstance } from 'ky'
 const API_BASE = (import.meta as any).env.VITE_API_BASE as string
 
 export function createApi(
-  getAccessToken: () => string | undefined,
+  getAccessToken: () => string | undefined | Promise<string | undefined>,
   onUnauthorized?: () => Promise<boolean>
 ) {
   let api: KyInstance
@@ -11,8 +11,8 @@ export function createApi(
     prefixUrl: API_BASE,
     hooks: {
       beforeRequest: [
-        (req) => {
-          const token = getAccessToken()
+        async (req) => {
+          const token = await getAccessToken()
           if (token) req.headers.set('Authorization', `Bearer ${token}`)
         }
       ],

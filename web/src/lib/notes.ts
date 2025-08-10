@@ -3,18 +3,20 @@ import { getSession } from './session'
 import { queueOp } from './sync'
 
 export async function listLocalNotes(): Promise<NoteRecord[]> {
-  const s = await getSession()
+  const session = await getSession()
   const all = await db.notes.orderBy('updatedAt').reverse().toArray()
-  if (!s?.userId) return all
-  return all.filter(n => n.userId === s.userId)
+  const visible = all.filter(n => !n.deletedAt)
+  if (!session?.userId) return visible
+  return visible.filter(n => n.userId === session.userId)
 }
 
 export async function upsertLocalNote(partial: Partial<NoteRecord> & { id: string }) {
   const now = new Date().toISOString()
   const prev = await db.notes.get(partial.id)
+  const session = await getSession()
   const rec: NoteRecord = {
     id: partial.id,
-    userId: partial.userId || prev?.userId || '',
+    userId: partial.userId || prev?.userId || (session?.userId || ''),
     title: partial.title ?? prev?.title ?? '',
     content: partial.content ?? prev?.content ?? '',
     color: partial.color ?? prev?.color ?? '#fff59d',
