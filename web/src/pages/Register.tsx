@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { register as registerUser } from '../lib/auth'
+import { useNavigate } from 'react-router-dom'
 import '../clean.css'
 
 export default function RegisterPage() {
@@ -7,6 +8,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -14,7 +16,7 @@ export default function RegisterPage() {
     setError(undefined)
     try {
       await registerUser(email, password, { name: navigator.userAgent, platform: 'web' })
-      location.href = '/notes'
+      navigate('/notes', { replace: true })
     } catch (e: any) {
       setError(e?.message || 'Register failed')
     } finally {
