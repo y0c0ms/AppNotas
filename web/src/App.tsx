@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
+import { HashRouter, Route, Routes, Navigate } from 'react-router-dom'
 import './App.css'
 import LoginPage from './pages/Login'
 import NotesPage from './pages/Notes'
@@ -20,7 +20,7 @@ function App() {
   }, [])
   if (authed === null) return null
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Navigate to={authed ? '/notes' : '/login'} replace />} />
         <Route path="/login" element={<LoginPage />} />
@@ -29,7 +29,7 @@ function App() {
         <Route path="/shared" element={authed ? <SharedPage /> : <Navigate to="/login" replace />} />
         <Route path="/calendar" element={authed ? <CalendarPage /> : <Navigate to="/login" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 
