@@ -1,6 +1,7 @@
 import Ky, { type KyInstance } from 'ky'
 
-const API_BASE = (import.meta as any).env.VITE_API_BASE as string
+const envBase = (import.meta as any).env?.VITE_API_BASE as string | undefined
+const API_BASE = envBase && envBase.length > 0 ? envBase : 'https://appnotas-7pof.onrender.com/v1'
 
 export function createApi(
   getAccessToken: () => string | undefined | Promise<string | undefined>,

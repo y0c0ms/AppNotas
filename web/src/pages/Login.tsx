@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { login } from '../lib/auth'
 import '../clean.css'
 
@@ -7,6 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -14,7 +16,7 @@ export default function LoginPage() {
     setError(undefined)
     try {
       await login(email, password, { name: navigator.userAgent, platform: 'web' })
-      location.href = '/notes'
+      navigate('/notes', { replace: true })
     } catch (e: any) {
       setError(e?.message || 'Login failed')
     } finally {

@@ -41,6 +41,13 @@ export default function NotesPage() {
     })()
   }, [])
 
+  // Ensure initial navigation lands on /notes with router, not full page
+  useEffect(() => {
+    if (location.pathname === '/') {
+      history.replaceState(null, '', '/notes')
+    }
+  }, [])
+
   return (
     <div>
       <Header />
