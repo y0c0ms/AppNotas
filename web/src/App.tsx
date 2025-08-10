@@ -5,10 +5,17 @@ import NotesPage from './pages/Notes'
 import RegisterPage from './pages/Register'
 import { useEffect, useState } from 'react'
 import { isAuthenticated } from './lib/session'
+import { syncNow } from './lib/sync'
 
 function App() {
   const [authed, setAuthed] = useState<boolean | null>(null)
   useEffect(() => { isAuthenticated().then(setAuthed) }, [])
+  useEffect(() => {
+    const onFocus = () => { syncNow().catch(() => {}) }
+    window.addEventListener('focus', onFocus)
+    const t = setInterval(() => { syncNow().catch(() => {}) }, 5 * 60 * 1000)
+    return () => { window.removeEventListener('focus', onFocus); clearInterval(t) }
+  }, [])
   if (authed === null) return null
   return (
     <BrowserRouter>

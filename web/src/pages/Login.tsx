@@ -29,6 +29,7 @@ export default function LoginPage() {
         <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
         {error && <div style={{ color: 'red' }}>{error}</div>}
         <button disabled={loading} type="submit">{loading ? 'Signing in…' : 'Login'}</button>
+        <a href="/register">Create an account</a>
       </form>
     </div>
   )
