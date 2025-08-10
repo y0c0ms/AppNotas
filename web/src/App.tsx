@@ -13,6 +13,11 @@ function App() {
   const [authed, setAuthed] = useState<boolean | null>(null)
   useEffect(() => { isAuthenticated().then(setAuthed) }, [])
   useEffect(() => {
+    const onChange = () => { isAuthenticated().then(setAuthed) }
+    window.addEventListener('auth:changed', onChange)
+    return () => window.removeEventListener('auth:changed', onChange)
+  }, [])
+  useEffect(() => {
     const onFocus = () => { syncNow().catch(() => {}) }
     window.addEventListener('focus', onFocus)
     const t = setInterval(() => { syncNow().catch(() => {}) }, 5 * 60 * 1000)

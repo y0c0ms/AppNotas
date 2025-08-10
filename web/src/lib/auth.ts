@@ -24,12 +24,14 @@ const api = createApi(() => inMemoryAccessToken, async () => {
 export async function register(email: string, password: string, device: { name: string; platform: string }) {
   const res = await raw.post('auth/register', { json: { email, password, device } }).json<LoginResponse>()
   await persistSession({ ...res, email })
+  notifyAuthChanged()
   return res
 }
 
 export async function login(email: string, password: string, device: { name: string; platform: string }) {
   const res = await raw.post('auth/login', { json: { email, password, device } }).json<LoginResponse>()
   await persistSession({ ...res, email })
+  notifyAuthChanged()
   return res
 }
 
@@ -56,6 +58,7 @@ export async function logout() {
   }
   inMemoryAccessToken = undefined
   await db.session.delete('session')
+  notifyAuthChanged()
 }
 
 async function persistSession(r: LoginResponse & { email?: string }) {
@@ -78,6 +81,10 @@ export async function getAccessToken() {
     return r?.accessToken
   }
   return undefined
+}
+
+function notifyAuthChanged() {
+  try { window.dispatchEvent(new CustomEvent('auth:changed')) } catch {}
 }
 
 
