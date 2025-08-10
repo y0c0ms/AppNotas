@@ -57,7 +57,6 @@ export default function SharedPage() {
     </>
   )
 }
-
 function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput, onReload, setConfirm, currentUserId }: any) {
   const isEditing = editingId === note.id
   const taRef = useRef<HTMLTextAreaElement | null>(null)
