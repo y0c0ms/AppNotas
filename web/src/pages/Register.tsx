@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { register as registerUser } from '../lib/auth'
+import '../clean.css'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -22,15 +23,29 @@ export default function RegisterPage() {
   }
 
   return (
-    <div style={{ maxWidth: 360, margin: '40px auto' }}>
-      <h1>Register</h1>
-      <form onSubmit={submit}>
-        <input placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-        <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-        {error && <div style={{ color: 'red' }}>{error}</div>}
-        <button disabled={loading} type="submit">{loading ? 'Creating…' : 'Create account'}</button>
-      </form>
-    </div>
+    <main>
+      <div className="auth-view" style={{ display: 'block' }}>
+        <div className="auth-card">
+          <h2>Create account</h2>
+          <div className="auth-sub">Start using AppNotas</div>
+          <form className="auth-form" onSubmit={submit}>
+            <label>
+              <span>Email</span>
+              <input placeholder="you@example.com" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+            </label>
+            <label>
+              <span>Password</span>
+              <input placeholder="••••••••" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+            </label>
+            {error && <div className="auth-error">{error}</div>}
+            <div className="auth-actions-row">
+              <a className="secondary-btn" href="/login" style={{ textAlign: 'center', textDecoration: 'none' }}>Back</a>
+              <button className="primary-btn" disabled={loading} type="submit">{loading ? 'Creating…' : 'Create account'}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
   )
 }
 
