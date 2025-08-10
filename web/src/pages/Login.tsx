@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { login } from '../lib/auth'
 import '../clean.css'
 
@@ -42,7 +42,7 @@ export default function LoginPage() {
             {error && <div className="auth-error" id="authError">{error}</div>}
             <div className="auth-actions-row">
               <button className="primary-btn" disabled={loading} type="submit">{loading ? 'Signing in…' : 'Login'}</button>
-              <a className="secondary-btn" href="/register" style={{ textAlign: 'center', textDecoration: 'none' }}>Register</a>
+              <Link className="secondary-btn" to="/register" style={{ textAlign: 'center', textDecoration: 'none' }}>Register</Link>
             </div>
           </form>
         </div>

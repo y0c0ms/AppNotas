@@ -62,4 +62,15 @@ export function toggleTaskAtCursor(ta: HTMLTextAreaElement) {
   ta.focus()
 }
 
+export function moveCheckedTasksToEnd(ta: HTMLTextAreaElement) {
+  const lines = ta.value.split('\n')
+  const unchecked: string[] = []
+  const checked: string[] = []
+  for (const l of lines) {
+    if (/^\s*\[x\]\s/i.test(l)) checked.push(l)
+    else unchecked.push(l)
+  }
+  ta.value = [...unchecked, ...checked].join('\n')
+}
+
 

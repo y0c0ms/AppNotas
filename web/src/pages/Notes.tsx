@@ -6,7 +6,7 @@ import { useToast } from '../components/Toast'
 import Header from '../components/Header'
 import { syncNow } from '../lib/sync'
 import '../clean.css'
-import { insertPrefixAtCursor, continueMarkdownListOnEnter, toggleTaskAtCursor } from '../lib/md'
+import { insertPrefixAtCursor, continueMarkdownListOnEnter, toggleTaskAtCursor, moveCheckedTasksToEnd } from '../lib/md'
 
 export default function NotesPage() {
   const [notes, setNotes] = useState<any[]>([])
@@ -27,6 +27,29 @@ export default function NotesPage() {
   const nextColor = (current?: string) => {
     const i = Math.max(0, colorOptions.indexOf(current || '#ffffff'))
     return colorOptions[(i + 1) % colorOptions.length]
+  }
+
+  function parseChecklist(content: string) {
+    const lines = (content || '').split('\n')
+    return lines.map((raw, idx) => {
+      const mChecked = /^\s*\[x\]\s*/i.exec(raw)
+      const mUnchecked = /^\s*\[\s?\]\s*/.exec(raw)
+      if (mChecked) return { index: idx, checked: true, text: raw.slice(mChecked[0].length) }
+      if (mUnchecked) return { index: idx, checked: false, text: raw.slice(mUnchecked[0].length) }
+      return { index: idx, checked: false, text: raw }
+    })
+  }
+
+  async function toggleChecklist(noteId: string, content: string, itemIndex: number) {
+    const items = parseChecklist(content)
+    const toggled = { ...items[itemIndex], checked: !items[itemIndex].checked }
+    items[itemIndex] = toggled
+    // move checked items to end
+    const unchecked = items.filter(i => !i.checked)
+    const checked = items.filter(i => i.checked)
+    const newContent = [...unchecked, ...checked].map(i => (i.checked ? `[x] ${i.text}` : `[ ] ${i.text}`)).join('\n')
+    await upsertLocalNote({ id: noteId, content: newContent })
+    await refresh()
   }
 
   async function refresh() {
@@ -60,6 +83,7 @@ export default function NotesPage() {
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '• ') }}>•</button>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '1. ') }}>1.</button>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) toggleTaskAtCursor(addTextareaRef.current) }}>☑</button>
+              <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) moveCheckedTasksToEnd(addTextareaRef.current) }}>⇩☑</button>
             </div>
             <textarea ref={addTextareaRef} id="noteInput" placeholder="Write your note..." value={newContent} onChange={e => setNewContent(e.target.value)} onKeyDown={continueMarkdownListOnEnter as any} />
             <div className="share-toggle">
@@ -91,14 +115,23 @@ export default function NotesPage() {
           <div className="notes-column">
             <div className="column-header">Notes without dates</div>
             <div className="notes-list">
-              {notes.filter(n => !n.dueAt && !n.isShared).map(n => (
+              {notes.filter(n => !n.dueAt && !n.isShared).sort((a,b)=> (Number(b.pinned)-Number(a.pinned)) || (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())).map(n => (
                 <div key={n.id} className="note-card" style={{ backgroundColor: n.color }}>
                   <div className="note-content">
                     <div className="note-text" style={{ width: '100%' }}>
                       <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
                       <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+                      <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
+                        {parseChecklist(n.content).map((it) => (
+                          <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(n.id, n.content, it.index)} />
+                            <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                     <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
+                      <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
                       <button title="Color" onClick={async () => { await upsertLocalNote({ id: n.id, color: nextColor(n.color) }); await refresh() }}>🎨</button>
                       <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
                       <button className="delete-note" title="Delete" onClick={async () => {
@@ -131,14 +164,23 @@ export default function NotesPage() {
           <div className="notes-column">
             <div className="column-header">Notes with dates</div>
             <div className="notes-list">
-              {notes.filter(n => !!n.dueAt && !n.isShared).map(n => (
+              {notes.filter(n => !!n.dueAt && !n.isShared).sort((a,b)=> (Number(b.pinned)-Number(a.pinned)) || (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())).map(n => (
                 <div key={n.id} className="note-card" style={{ backgroundColor: n.color }}>
                   <div className="note-content">
                     <div className="note-text" style={{ width: '100%' }}>
                       <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
                       <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+                      <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
+                        {parseChecklist(n.content).map((it) => (
+                          <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(n.id, n.content, it.index)} />
+                            <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                     <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
+                      <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
                       <button title="Color" onClick={async () => { await upsertLocalNote({ id: n.id, color: nextColor(n.color) }); await refresh() }}>🎨</button>
                       <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
                       <button className="delete-note" title="Delete" onClick={async () => {
