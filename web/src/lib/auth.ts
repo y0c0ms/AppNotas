@@ -14,13 +14,13 @@ const api = createApi(() => inMemoryAccessToken, async () => {
 
 export async function register(email: string, password: string, device: { name: string; platform: string }) {
   const res = await raw.post('auth/register', { json: { email, password, device } }).json<LoginResponse>()
-  await persistSession(res)
+  await persistSession({ ...res, email })
   return res
 }
 
 export async function login(email: string, password: string, device: { name: string; platform: string }) {
   const res = await raw.post('auth/login', { json: { email, password, device } }).json<LoginResponse>()
-  await persistSession(res)
+  await persistSession({ ...res, email })
   return res
 }
 
@@ -42,9 +42,9 @@ export async function logout() {
   await db.session.delete('session')
 }
 
-async function persistSession(r: LoginResponse) {
+async function persistSession(r: LoginResponse & { email?: string }) {
   inMemoryAccessToken = r.accessToken
-  await db.session.put({ id: 'session', userId: r.userId, deviceId: r.deviceId, accessToken: r.accessToken, refreshToken: r.refreshToken })
+  await db.session.put({ id: 'session', userId: r.userId, deviceId: r.deviceId, accessToken: r.accessToken, refreshToken: r.refreshToken, email: r.email })
 }
 
 export function getApi() {

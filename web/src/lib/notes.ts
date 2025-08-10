@@ -1,8 +1,12 @@
 import { db, type NoteRecord } from './db'
+import { getSession } from './session'
 import { queueOp } from './sync'
 
 export async function listLocalNotes(): Promise<NoteRecord[]> {
-  return db.notes.orderBy('updatedAt').reverse().toArray()
+  const s = await getSession()
+  const all = await db.notes.orderBy('updatedAt').reverse().toArray()
+  if (!s?.userId) return all
+  return all.filter(n => n.userId === s.userId)
 }
 
 export async function upsertLocalNote(partial: Partial<NoteRecord> & { id: string }) {

@@ -3,6 +3,7 @@ import Dexie, { type Table } from 'dexie'
 export type NoteRecord = {
   id: string
   userId: string
+  ownerEmail?: string
   title: string
   content: string
   color: string
@@ -40,6 +41,7 @@ export type Session = {
   deviceId?: string
   accessToken?: string
   refreshToken?: string
+  email?: string
 }
 
 export class AppDb extends Dexie {

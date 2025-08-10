@@ -1,5 +1,6 @@
 import { getApi } from './auth'
 import { db, type NoteRecord } from './db'
+import { getSession } from './session'
 
 type ServerNote = {
   id: string
@@ -49,9 +50,12 @@ export async function fetchAndCacheNotes() {
   const api = getApi()
   const res = await api.get('notes').json<{ own: ServerNote[]; shared: ServerNote[] }>()
   const all = [...(res.own || []), ...(res.shared || [])]
+  const s = await getSession()
   await db.transaction('rw', db.notes, async () => {
     for (const n of all) {
-      await db.notes.put(mapServerNote(n))
+      const mapped = mapServerNote(n)
+      // Tag owner email if we know it
+      await db.notes.put({ ...mapped, ownerEmail: mapped.userId === s?.userId ? (s?.email || mapped.ownerEmail) : mapped.ownerEmail })
     }
   })
   return all.length

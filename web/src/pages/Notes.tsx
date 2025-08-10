@@ -1,20 +1,24 @@
 import { useEffect, useState } from 'react'
 import { listLocalNotes, upsertLocalNote, deleteLocalNote } from '../lib/notes'
-import { syncNow } from '../lib/sync'
 import { fetchAndCacheNotes } from '../lib/notesApi'
-import { updateSharing, leaveNote } from '../lib/shareApi'
+import { updateSharing } from '../lib/shareApi'
 import { useToast } from '../components/Toast'
-// import Header from '../components/Header'
+import Header from '../components/Header'
 import '../clean.css'
 
 export default function NotesPage() {
   const [notes, setNotes] = useState<any[]>([])
-  const [collabEmail, setCollabEmail] = useState('')
+  // Collaborator email input moved to shared view; not used here
   const { Toast, show } = useToast()
   // const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newContent, setNewContent] = useState('')
+  const colorOptions = ['#ffffff', '#deeaff', '#ddffe7', '#ffdddd', '#eddeff']
+  const nextColor = (current?: string) => {
+    const i = Math.max(0, colorOptions.indexOf(current || '#ffffff'))
+    return colorOptions[(i + 1) % colorOptions.length]
+  }
 
   async function refresh() {
     const list = await listLocalNotes()
@@ -30,19 +34,7 @@ export default function NotesPage() {
 
   return (
     <div>
-      <header className="header">
-        <div className="app-logo">
-          <img className="app-icon" src="/icons/icon-192.png" alt="AppNotas" />
-          <h1>AppNotas</h1>
-        </div>
-        <div className="header-actions">
-          <div className="split-group">
-            <button id="syncNowBtn" className="split-left" onClick={async () => { await syncNow(); await refresh(); show('Synced', 'success') }}>Sync now</button>
-            <button className="split-right" onClick={() => setShowAdd(s => !s)}>Add note</button>
-          </div>
-          <button onClick={async () => { await syncNow(); location.reload() }}>Refresh</button>
-        </div>
-      </header>
+      <Header />
 
       <main>
         <div className="add-note-container">
@@ -63,49 +55,66 @@ export default function NotesPage() {
           </div>
         </div>
 
-        <div className="notes-list">
-          {notes.map(n => (
-            <div key={n.id} className="note-card">
-              <div className="note-content">
-                <div className="note-text" style={{ width: '100%' }}>
-                  <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
-                  <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+        <div className="notes-columns">
+          <div className="notes-column">
+            <div className="column-header">Notes without dates</div>
+            <div className="notes-list">
+              {notes.filter(n => !n.dueAt).map(n => (
+                <div key={n.id} className="note-card" style={{ backgroundColor: n.color }}>
+                  <div className="note-content">
+                    <div className="note-text" style={{ width: '100%' }}>
+                      <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
+                      <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+                    </div>
+                    <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
+                      <button title="Color" onClick={async () => { await upsertLocalNote({ id: n.id, color: nextColor(n.color) }); await refresh() }}>🎨</button>
+                      <button title="Share" onClick={async () => { try { await updateSharing(n.id, { isShared: !n.isShared }); show(n.isShared ? 'Sharing off' : 'Sharing on', 'success') } catch { show('Failed to toggle share', 'error') } await refresh() }}>🤝</button>
+                      <button className="delete-note" title="Delete" onClick={async () => { await deleteLocalNote(n.id); await refresh(); show('Note moved to trash', 'success') }}>🗑</button>
+                    </div>
+                  </div>
                 </div>
-                <div className="note-actions">
-                  <button className="delete-note" title="Delete" onClick={async () => { await deleteLocalNote(n.id); await refresh(); show('Note moved to trash', 'success') }}>🗑</button>
-                </div>
-              </div>
-              <div className="note-meta">
-                <div className="note-meta-item">
-                  <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                    <input type="checkbox" checked={!!n.isShared} onChange={async e => {
-                      try { await updateSharing(n.id, { isShared: e.target.checked }); show('Sharing updated', 'success') } catch { show('Failed to update share', 'error') }
-                      await refresh()
-                    }} /> Shared
-                  </label>
-                </div>
-                <div className="share-row" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input placeholder="Collaborator email" value={collabEmail} onChange={e => setCollabEmail(e.target.value)} />
-                  <button onClick={async () => {
-                    if (!collabEmail) return
-                    try { await updateSharing(n.id, { addCollaborators: [collabEmail] }); setCollabEmail(''); show('Collaborator added', 'success') } catch { show('Failed to add', 'error') }
-                    await refresh()
-                  }}>Add</button>
-                  <button onClick={async () => {
-                    if (!collabEmail) return
-                    try { await updateSharing(n.id, { removeCollaborators: [collabEmail] }); setCollabEmail(''); show('Collaborator removed', 'success') } catch { show('Failed to remove', 'error') }
-                    await refresh()
-                  }}>Remove</button>
-                  <button onClick={async () => { try { await leaveNote(n.id); show('Left shared note', 'success') } catch { show('Failed to leave', 'error') } await refresh() }}>Leave</button>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
+          <div className="notes-column">
+            <div className="column-header">Notes with dates</div>
+            <div className="notes-list">
+              {notes.filter(n => !!n.dueAt).map(n => (
+                <div key={n.id} className="note-card" style={{ backgroundColor: n.color }}>
+                  <div className="note-content">
+                    <div className="note-text" style={{ width: '100%' }}>
+                      <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
+                      <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+                    </div>
+                    <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
+                      <button title="Color" onClick={async () => { await upsertLocalNote({ id: n.id, color: nextColor(n.color) }); await refresh() }}>🎨</button>
+                      <button title="Share" onClick={async () => { try { await updateSharing(n.id, { isShared: !n.isShared }); show(n.isShared ? 'Sharing off' : 'Sharing on', 'success') } catch { show('Failed to toggle share', 'error') } await refresh() }}>🤝</button>
+                      <button className="delete-note" title="Delete" onClick={async () => { await deleteLocalNote(n.id); await refresh(); show('Note moved to trash', 'success') }}>🗑</button>
+                    </div>
+                  </div>
+                  <div className="note-meta">
+                    <div className="note-meta-date">
+                      {formatDateTime(n.dueAt as string)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </main>
       <Toast />
     </div>
   )
+}
+
+function formatDateTime(iso: string) {
+  try {
+    const d = new Date(iso)
+    const date = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).format(d)
+    const time = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(d)
+    return `${date}  ${time}`
+  } catch { return iso }
 }
 
 

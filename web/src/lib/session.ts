@@ -5,4 +5,8 @@ export async function isAuthenticated() {
   return !!(s?.accessToken && s?.userId)
 }
 
+export async function getSession() {
+  return db.session.get('session')
+}
+
 
