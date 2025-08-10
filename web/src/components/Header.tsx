@@ -1,11 +1,12 @@
 import { logout } from '../lib/auth'
 import { syncNow } from '../lib/sync'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import '../clean.css'
 
 export default function Header() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const [syncing, setSyncing] = useState(false)
   const [dark, setDark] = useState<boolean>(() => {
     const saved = localStorage.getItem('darkMode')
@@ -44,7 +45,7 @@ export default function Header() {
           </button>
           <button className="split-right" onClick={() => setDark((v) => !v)} title="Toggle dark mode">{dark ? '🌙' : '☀️'}</button>
         </div>
-        <button onClick={async () => { await logout(); location.href = '/login' }}>Log out</button>
+        <button onClick={async () => { await logout(); navigate('/login', { replace: true }) }}>Log out</button>
       </div>
     </header>
   )
