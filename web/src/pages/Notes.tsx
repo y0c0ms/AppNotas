@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listLocalNotes, upsertLocalNote, deleteLocalNote } from '../lib/notes'
 import { syncNow } from '../lib/sync'
+import { fetchAndCacheNotes } from '../lib/notesApi'
 
 export default function NotesPage() {
   const [notes, setNotes] = useState<any[]>([])
@@ -12,7 +13,11 @@ export default function NotesPage() {
   }
 
   useEffect(() => {
-    refresh().finally(() => setLoading(false))
+    (async () => {
+      await fetchAndCacheNotes().catch(() => {})
+      await refresh()
+      setLoading(false)
+    })()
   }, [])
 
   return (
