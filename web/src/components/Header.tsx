@@ -8,6 +8,7 @@ export default function Header() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const [syncing, setSyncing] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [dark, setDark] = useState<boolean>(() => {
     const saved = localStorage.getItem('darkMode')
     return saved === null ? true : saved === 'true'
@@ -34,6 +35,7 @@ export default function Header() {
         <button className="add-header-btn" onClick={() => window.dispatchEvent(new CustomEvent('notes:openAdd'))}>
           + Add a Note
         </button>
+        <button className="burger" aria-label="Menu" onClick={() => setMenuOpen(s => !s)}>☰</button>
       </div>
       <div className="header-actions">
         <nav className="header-tabs tabs">
@@ -49,6 +51,18 @@ export default function Header() {
         </div>
         <button onClick={async () => { await logout(); navigate('/login', { replace: true }) }}>Log out</button>
       </div>
+      <aside className={`side-drawer ${menuOpen ? 'open' : ''}`} onClick={() => setMenuOpen(false)}>
+        <div className="drawer" onClick={e => e.stopPropagation()}>
+          <nav className="drawer-nav">
+            <Link to="/notes" onClick={() => setMenuOpen(false)}>Notes</Link>
+            <Link to="/shared" onClick={() => setMenuOpen(false)}>My Shared Notes</Link>
+            <Link to="/calendar" onClick={() => setMenuOpen(false)}>Calendar</Link>
+            <button onClick={doSync} disabled={syncing}>{syncing ? 'Syncing…' : 'Sync now'}</button>
+            <button onClick={() => setDark((v) => !v)}>{dark ? 'Dark' : 'Light'} mode</button>
+            <button onClick={async () => { await logout(); navigate('/login', { replace: true }) }}>Log out</button>
+          </nav>
+        </div>
+      </aside>
     </header>
   )
 }

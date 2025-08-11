@@ -36,7 +36,7 @@ export default function NotesPage() {
   const getColorPresets = () => {
     const dark = document.body.classList.contains('dark-mode')
     return dark
-      ? ['#2d2e40', '#3a4157', '#2f4f4f', '#4b3a3a', '#394a3a', '#38404d']
+      ? ['#1E3A8A', '#0F766E', '#7C3AED', '#9D174D', '#A16207', '#14532D']
       : ['#ffffff', '#deeaff', '#ddffe7', '#ffdddd', '#fff59d', '#eddeff']
   }
 

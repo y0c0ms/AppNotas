@@ -2,7 +2,7 @@
 
 /* --- tokens.css --- */
 :root { --primary-color:#4F46E5; --primary-color-light:rgba(93,95,239,0.1); --secondary-color:#818CF8; --primary-color-dark:#4338CA; --bg-color:#f8f9fe; --bg-color-secondary:#f1f5f9; --text-color:#333; --card-bg:#fff; --border-color:#e5e7eb; --shadow:0 4px 12px rgba(0,0,0,.08); --header-bg:#fff; --header-text:#333; --calendar-today:rgba(93,95,239,.15); --anim-duration:.3s; --note-color-default:#ffffff; --note-color-blue:#deeaff; --note-color-green:#ddffe7; --note-color-red:#ffdddd; --note-color-purple:#eddeff; }
-.dark-mode { --primary-color:#6366F1; --primary-color-light:rgba(140,142,255,.15); --secondary-color:#A5B4FC; --primary-color-dark:#4F46E5; --bg-color:#1a1c2a; --bg-color-secondary:#24263a; --text-color:#e5e7eb; --card-bg:#2d2e40; --border-color:#4b5563; --shadow:0 4px 12px rgba(0,0,0,.3); --header-bg:#14151f; --header-text:#f3f4f6; --calendar-today:rgba(140,142,255,.2); }
+.dark-mode { --primary-color:#7C3AED; --primary-color-light:rgba(124,58,237,.25); --secondary-color:#A78BFA; --primary-color-dark:#6D28D9; --bg-color:#0f1220; --bg-color-secondary:#171a2b; --text-color:#e5e7eb; --card-bg:#1f2337; --border-color:#3b3f57; --shadow:0 4px 12px rgba(0,0,0,.35); --header-bg:#13162a; --header-text:#f3f4f6; --calendar-today:rgba(124,58,237,.25); }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:var(--bg-color);color:var(--text-color);transition:background-color var(--anim-duration),color var(--anim-duration);min-height:100vh;width:100%;overflow-x:hidden}
 main{max-width:1200px;margin:0 auto;padding:1rem;animation:fadeIn .5s ease-out}
@@ -40,6 +40,9 @@ header{display:flex;justify-content:space-between;align-items:center;padding:1re
 .app-icon{height:40px;width:40px;margin-right:10px;object-fit:contain;image-rendering:auto;transform:translateZ(0);backface-visibility:hidden;filter:contrast(1.05) brightness(1.05)}
 .add-header-btn{background-color:var(--primary-color);color:#fff;border:none;padding:.5rem 1rem;border-radius:.5rem;cursor:pointer;transition:background-color var(--anim-duration),transform var(--anim-duration),box-shadow var(--anim-duration)}
 .add-header-btn:hover{background-color:var(--secondary-color);transform:translateY(-2px);box-shadow:0 3px 8px rgba(0,0,0,.15)}
+#darkModeToggle{background:none;color:var(--text-color);font-size:1.5rem;transition:transform .5s}
+#darkModeToggle:hover{transform:rotate(180deg);background:none}
+.burger{background:none;color:var(--text-color);font-size:1.5rem;padding:.25rem .5rem}
 #darkModeToggle{background:none;color:var(--text-color);font-size:1.5rem;transition:transform .5s}
 #darkModeToggle:hover{transform:rotate(180deg);background:none}
 #syncNowBtn.loading{opacity:.8}
@@ -213,4 +216,12 @@ button:active{transform:translateY(0)}
 .sheet-close{background:none;color:var(--text-color);font-size:1.25rem}
 .sheet-body{padding:12px;display:flex;flex-direction:column;gap:10px;overflow:auto}
 .sheet-footer{padding:12px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end}
+
+/* Side drawer */
+.side-drawer{position:fixed;inset:0;z-index:1000;display:none}
+.side-drawer.open{display:block}
+.side-drawer::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.drawer{position:absolute;top:0;left:0;height:100%;width:70%;max-width:300px;background:var(--card-bg);border-right:1px solid var(--border-color);box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px}
+.drawer-nav a,.drawer-nav button{display:block;background:none;color:var(--text-color);text-align:left;border:none;padding:10px;border-radius:8px}
+.drawer-nav a:hover,.drawer-nav button:hover{background:var(--primary-color-light)}
 

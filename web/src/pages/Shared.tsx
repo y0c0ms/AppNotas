@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchAndCacheNotes, fetchNotesLists } from '../lib/notesApi'
-// import { db } from '../lib/db'
+import { db } from '../lib/db'
 import { getSession } from '../lib/session'
 import Header from '../components/Header'
 import { continueMarkdownListOnEnter, insertPrefixAtCursor } from '../lib/md'
@@ -31,7 +31,10 @@ export default function SharedPage() {
     const sharedWithMe = (lists.shared || []).filter(n => !n.deletedAt)
     const dedup = new Map<string, any>()
     for (const n of [...ownShared, ...sharedWithMe]) dedup.set(n.id, n)
-    const result = Array.from(dedup.values()).map(n => ({ ...n, ownerEmail: n.user?.email }))
+    const result = await Promise.all(Array.from(dedup.values()).map(async n => {
+      const local = await db.notes.get(n.id)
+      return { ...n, ownerEmail: n.user?.email, isList: local?.isList ?? false }
+    }))
     setNotes(result)
   }
 
@@ -62,9 +65,24 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
   const taRef = useRef<HTMLTextAreaElement | null>(null)
   const dark = document.body.classList.contains('dark-mode')
   const colorPresets = dark
-    ? ['#2d2e40', '#3a4157', '#2f4f4f', '#4b3a3a', '#394a3a', '#38404d']
+    ? ['#1E3A8A', '#0F766E', '#7C3AED', '#9D174D', '#A16207', '#14532D']
     : ['#ffffff', '#deeaff', '#ddffe7', '#ffdddd', '#fff59d', '#eddeff']
   const [showColors, setShowColors] = useState(false)
+  const parseChecklist = (content: string) => (content || '').split('\n').map((raw, idx) => {
+    const mChecked = /^\s*\[x\]\s*/i.exec(raw)
+    const mUnchecked = /^\s*\[\s?\]\s*/.exec(raw)
+    if (mChecked) return { index: idx, checked: true, text: raw.slice(mChecked[0].length) }
+    if (mUnchecked) return { index: idx, checked: false, text: raw.slice(mUnchecked[0].length) }
+    return { index: idx, checked: false, text: raw }
+  })
+  const toggleChecklist = async (noteId: string, content: string, itemIndex: number) => {
+    const items = parseChecklist(content)
+    items[itemIndex] = { ...items[itemIndex], checked: !items[itemIndex].checked }
+    const newContent = [...items.filter(i=>!i.checked), ...items.filter(i=>i.checked)]
+      .map(i => (i.checked ? `[x] ${i.text}` : `[ ] ${i.text}`)).join('\n')
+    await upsertLocalNote({ id: noteId, content: newContent })
+    await syncNow(); await onReload()
+  }
   return (
     <div className="note-card">
       <div className="note-content">
@@ -72,7 +90,18 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
           {!isEditing ? (
             <div>
               <div style={{ fontWeight: 600 }}>{note.title}</div>
-              <div style={{ whiteSpace: 'pre-wrap' }}>{note.content}</div>
+              {!note.isList ? (
+                <div style={{ whiteSpace: 'pre-wrap' }}>{note.content}</div>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
+                  {parseChecklist(note.content).map((it) => (
+                    <li key={it.index} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(note.id, note.content, it.index)} />
+                      <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'normal', overflowWrap: 'anywhere', textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ) : (
             <>
