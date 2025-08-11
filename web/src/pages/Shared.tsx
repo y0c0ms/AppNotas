@@ -67,7 +67,7 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
   const colorPresets = dark
     ? ['#1E3A8A', '#0F766E', '#7C3AED', '#9D174D', '#A16207', '#14532D']
     : ['#ffffff', '#deeaff', '#ddffe7', '#ffdddd', '#fff59d', '#eddeff']
-  const [showColors, setShowColors] = useState(false)
+  const [showColors] = useState(false)
   const parseChecklist = (content: string) => (content || '').split('\n').map((raw, idx) => {
     const mChecked = /^\s*\[x\]\s*/i.exec(raw)
     const mUnchecked = /^\s*\[\s?\]\s*/.exec(raw)
@@ -118,24 +118,20 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
         </div>
         <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
           <button title="Pin" onClick={async () => { await upsertLocalNote({ id: note.id, pinned: !note.pinned }); await syncNow(); await onReload() }}>📌</button>
-          <button title="Color" onClick={() => setShowColors(s => !s)} style={{ width: 28, height: 28, borderRadius: 16, background: note.color, border: '1px solid var(--border-color)' }} />
-          <input type="datetime-local" aria-label="Due date" value={note.dueAt ? new Date(new Date(note.dueAt).getTime() - new Date(note.dueAt).getTimezoneOffset()*60000).toISOString().slice(0,16) : ''} onChange={async (e) => {
-            const v = e.target.value
-            await upsertLocalNote({ id: note.id, dueAt: v ? new Date(v).toISOString() : null }); await syncNow(); await onReload()
-          }} style={{ height: 28 }} />
-          <button title={note.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: note.id, isList: !note.isList }); await syncNow(); await onReload() }}>{note.isList ? '📝' : '☑'}</button>
           <button className="edit-note" title="Edit note" onClick={() => setEditingId(isEditing ? null : note.id)}>✏️</button>
+          <button className="delete-note" title="Delete or Leave" onClick={async () => {
+            const me = await getSession()
+            if (note.userId === me?.userId) {
+              const now = new Date().toISOString()
+              await upsertLocalNote({ id: note.id, deletedAt: now, updatedAt: now })
+              await syncNow(); await onReload()
+            } else {
+              setConfirm(note.id)
+            }
+          }}>🗑</button>
         </div>
       </div>
-      {showColors && (
-        <div className="color-selector" style={{ marginTop: 6 }}>
-          <div className="color-options">
-            {colorPresets.map(c => (
-              <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: note.id, color: c }); await syncNow(); setShowColors(false); await onReload() }} />
-            ))}
-          </div>
-        </div>
-      )}
+      {showColors && null}
       {isEditing && (
         <div className="note-edit-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {note.userId === currentUserId && (
@@ -148,15 +144,24 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
               </div>
             </>
           )}
+          <button onClick={async () => { await upsertLocalNote({ id: note.id, dueAt: null }); await syncNow(); await onReload() }}>Remove date</button>
+          <input type="datetime-local" aria-label="Due date" value={note.dueAt ? new Date(new Date(note.dueAt).getTime() - new Date(note.dueAt).getTimezoneOffset()*60000).toISOString().slice(0,16) : ''} onChange={async (e) => {
+            const v = e.target.value
+            await upsertLocalNote({ id: note.id, dueAt: v ? new Date(v).toISOString() : null }); await syncNow(); await onReload()
+          }} style={{ height: 28 }} />
+          <button title={note.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: note.id, isList: !note.isList }); await syncNow(); await onReload() }}>{note.isList ? '📝' : '☑'}</button>
+          <div className="color-selector" style={{ marginTop: 6 }}>
+            <div className="color-options">
+              {colorPresets.map(c => (
+                <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: note.id, color: c }); await syncNow(); await onReload() }} />
+              ))}
+            </div>
+          </div>
           <button className="primary-btn" onClick={async () => {
             try {
               const val = taRef.current?.value ?? note.content
-              let newTitle = note.title
-              if (note.userId === currentUserId) {
-                const first = (val || '').split('\n')[0]?.slice(0, 60) || note.title
-                newTitle = first
-              }
-              await upsertLocalNote({ id: note.id, content: val, title: newTitle })
+              // Do NOT auto-derive title; preserve existing title unless explicitly edited elsewhere
+              await upsertLocalNote({ id: note.id, content: val })
               const emails = collabInput.split(',').map((s: string) => s.trim()).filter(Boolean)
               if (note.userId === currentUserId && emails.length) {
                 await updateSharing(note.id, { addCollaborators: emails })
@@ -164,7 +169,6 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
             } catch (e) {
               console.warn('Save failed', (e as any)?.message)
             } finally {
-              // Close editor immediately for snappy UX; sync / reload in background
               setEditingId(null)
               setCollabInput('')
               try { await syncNow() } catch {}
