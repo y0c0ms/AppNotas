@@ -6,6 +6,14 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:var(--bg-color);color:var(--text-color);transition:background-color var(--anim-duration),color var(--anim-duration);min-height:100vh;width:100%;overflow-x:hidden}
 main{max-width:1200px;margin:0 auto;padding:1rem;animation:fadeIn .5s ease-out}
+@media (max-width: 768px){
+  main{padding:.5rem}
+  .header-tabs{display:none}
+  .notes-columns{height:auto}
+  .notes-column{min-width:100%;max-width:100%}
+  .note-actions button{min-width:40px;min-height:40px}
+  .toggle-add-note{width:100%;justify-content:center}
+}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 
 /* --- base.css --- */
@@ -28,8 +36,10 @@ header{display:flex;justify-content:space-between;align-items:center;padding:1re
 .tab{padding:.75rem 1.5rem;margin-right:.5rem;background:none;color:var(--text-color);border-bottom:2px solid transparent;font-weight:500;transition:color var(--anim-duration),border-color var(--anim-duration)}
 .tab.active{border-bottom-color:var(--primary-color);color:var(--primary-color)}
 .tab:hover{background:none;color:var(--primary-color)}
-.app-logo{display:flex;align-items:center}
+.app-logo{display:flex;align-items:center;gap:10px}
 .app-icon{height:40px;width:40px;margin-right:10px;object-fit:contain;image-rendering:auto;transform:translateZ(0);backface-visibility:hidden;filter:contrast(1.05) brightness(1.05)}
+.add-header-btn{background-color:var(--primary-color);color:#fff;border:none;padding:.5rem 1rem;border-radius:.5rem;cursor:pointer;transition:background-color var(--anim-duration),transform var(--anim-duration),box-shadow var(--anim-duration)}
+.add-header-btn:hover{background-color:var(--secondary-color);transform:translateY(-2px);box-shadow:0 3px 8px rgba(0,0,0,.15)}
 #darkModeToggle{background:none;color:var(--text-color);font-size:1.5rem;transition:transform .5s}
 #darkModeToggle:hover{transform:rotate(180deg);background:none}
 #syncNowBtn.loading{opacity:.8}
@@ -192,4 +202,14 @@ button:active{transform:translateY(0)}
 .background-mode .calendar-event,.background-mode .month-event{transition:none!important;transform:none!important;animation:none!important;box-shadow:none!important}
 .background-mode .day-column:hover,.background-mode .calendar-day:hover{transform:none!important;box-shadow:none!important}
 
+/* Bottom sheet for mobile add form */
+.bottom-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);opacity:0;visibility:hidden;transition:opacity .25s;z-index:999}
+.bottom-sheet-overlay.open{opacity:1;visibility:visible}
+.bottom-sheet{position:fixed;left:0;right:0;bottom:-100%;background:var(--card-bg);border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -8px 24px rgba(0,0,0,.25);transition:bottom .3s;z-index:1000;max-height:85vh;display:flex;flex-direction:column}
+.bottom-sheet.open{bottom:0}
+.sheet-header{display:flex;align-items:center;justify-content:space-between;padding:10px}
+.sheet-handle{width:40px;height:4px;border-radius:2px;background:var(--border-color);margin:6px auto}
+.sheet-close{background:none;color:var(--text-color);font-size:1.25rem}
+.sheet-body{padding:12px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+.sheet-footer{padding:12px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end}
 

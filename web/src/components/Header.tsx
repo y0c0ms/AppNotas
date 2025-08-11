@@ -30,8 +30,10 @@ export default function Header() {
   return (
     <header>
       <div className="app-logo">
-        <img className="app-icon" src="/icons/icon-192.png" alt="AppNotas" />
-        <strong>AppNotas</strong>
+        <img className="app-icon" src="/icons/icon-192.png" alt="App icon" />
+        <button className="add-header-btn" onClick={() => window.dispatchEvent(new CustomEvent('notes:openAdd'))}>
+          + Add a Note
+        </button>
       </div>
       <div className="header-actions">
         <nav className="header-tabs tabs">

@@ -14,20 +14,30 @@ export default function NotesPage() {
   const { Toast, show } = useToast()
   // const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false)
   const [newTitle, setNewTitle] = useState('')
   const [newContent, setNewContent] = useState('')
   const [newIsList, setNewIsList] = useState(false)
   const [shareChecked, setShareChecked] = useState(false)
   const [shareEmails, setShareEmails] = useState('')
   const addTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const [showNewDate, setShowNewDate] = useState(false)
+  const [newDueAt, setNewDueAt] = useState('')
+  const [newColor, setNewColor] = useState<string>('#ffffff')
+  const [showNewColorPicker, setShowNewColorPicker] = useState(false)
+  const [colorPickerNoteId, setColorPickerNoteId] = useState<string | null>(null)
   // share editor per-note
   const [shareEditId, setShareEditId] = useState<string | null>(null)
   const [shareEditChecked, setShareEditChecked] = useState(false)
   const [shareEditEmails, setShareEditEmails] = useState('')
-  const colorOptions = ['#ffffff', '#deeaff', '#ddffe7', '#ffdddd', '#eddeff']
-  const nextColor = (current?: string) => {
-    const i = Math.max(0, colorOptions.indexOf(current || '#ffffff'))
-    return colorOptions[(i + 1) % colorOptions.length]
+  // kept for reference; presets now adapt to theme
+  // legacy helper no longer used; color is chosen via presets
+
+  const getColorPresets = () => {
+    const dark = document.body.classList.contains('dark-mode')
+    return dark
+      ? ['#2d2e40', '#3a4157', '#2f4f4f', '#4b3a3a', '#394a3a', '#38404d']
+      : ['#ffffff', '#deeaff', '#ddffe7', '#ffdddd', '#fff59d', '#eddeff']
   }
 
   function parseChecklist(content: string) {
@@ -63,7 +73,22 @@ export default function NotesPage() {
       await fetchAndCacheNotes().catch(() => {})
       await refresh()
     })()
+    const open = () => setShowAdd(true)
+    window.addEventListener('notes:openAdd', open as any)
+    const mql = window.matchMedia('(max-width: 768px)')
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    if (mql.addEventListener) mql.addEventListener('change', onChange)
+    else if ((mql as any).addListener) (mql as any).addListener(onChange)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowAdd(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('notes:openAdd', open as any)
   }, [])
+
+  useEffect(() => {
+    if (isMobile) {
+      document.body.style.overflow = showAdd ? 'hidden' : ''
+    }
+  }, [isMobile, showAdd])
 
   // Ensure initial navigation lands on /notes with router, not full page
   // No-op with HashRouter
@@ -78,6 +103,7 @@ export default function NotesPage() {
             <span className="plus-icon">＋</span>
             {showAdd ? 'Close' : 'Add a Note'}
           </button>
+          {!isMobile && (
           <div className={`add-note-form ${showAdd ? 'open' : ''}`}>
             <input id="noteTitleInput" placeholder="Title" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
             <div className="note-input-toolbar">
@@ -86,8 +112,27 @@ export default function NotesPage() {
               </label>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '• ') }}>•</button>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '1. ') }}>1.</button>
+              <button title="Add date" onClick={e => { e.preventDefault(); setShowNewDate(s => !s) }}>📅</button>
+              <button title="Color" onClick={e => { e.preventDefault(); setShowNewColorPicker(s => !s) }} style={{
+                width: 28, height: 28, borderRadius: 16, background: newColor, border: '1px solid var(--border-color)'
+              }} />
             </div>
             <textarea ref={addTextareaRef} id="noteInput" placeholder="Write your note..." value={newContent} onChange={e => setNewContent(e.target.value)} onKeyDown={continueMarkdownListOnEnter as any} />
+            {showNewDate && (
+              <div className="date-row" style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input type="datetime-local" value={newDueAt} onChange={e => setNewDueAt(e.target.value)} />
+                <button onClick={() => { setNewDueAt('') }}>Clear</button>
+              </div>
+            )}
+            {showNewColorPicker && (
+              <div className="color-selector">
+                <div className="color-options">
+                  {getColorPresets().map(c => (
+                    <button key={c} className="color-option" style={{ background: c }} onClick={() => { setNewColor(c); setShowNewColorPicker(false) }} />
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="share-toggle">
               <input id="shareNoteCheck" type="checkbox" checked={shareChecked} onChange={e => setShareChecked(e.target.checked)} /> Share this note
             </div>
@@ -99,7 +144,7 @@ export default function NotesPage() {
                 const id = crypto.randomUUID()
                 const isShared = shareChecked
                 const collaborators = shareEmails.split(',').map(s => s.trim()).filter(Boolean)
-                await upsertLocalNote({ id, title: newTitle || 'Untitled', content: newContent, isShared, isList: newIsList })
+                await upsertLocalNote({ id, title: newTitle || 'Untitled', content: newContent, isShared, isList: newIsList, dueAt: newDueAt ? new Date(newDueAt).toISOString() : null, color: newColor })
                 if (isShared && collaborators.length) {
                   try {
                     // Ensure the note exists on the server before sharing
@@ -107,11 +152,74 @@ export default function NotesPage() {
                     await updateSharing(id, { isShared: true, addCollaborators: collaborators })
                   } catch {}
                 }
-                setNewTitle(''); setNewContent(''); setNewIsList(false); setShareChecked(false); setShareEmails(''); setShowAdd(false); await refresh(); show('Note added', 'success')
+                setNewTitle(''); setNewContent(''); setNewIsList(false); setShareChecked(false); setShareEmails(''); setShowNewDate(false); setNewDueAt(''); setShowAdd(false); setNewColor('#ffffff'); setShowNewColorPicker(false); await refresh(); show('Note added', 'success')
               }}>Add</button>
             </div>
           </div>
+          )}
         </div>
+        {isMobile && (
+          <>
+            <div className={`bottom-sheet-overlay ${showAdd ? 'open' : ''}`} onClick={() => setShowAdd(false)} />
+            <div className={`bottom-sheet ${showAdd ? 'open' : ''}`} role="dialog" aria-modal="true" aria-label="Add a note">
+              <div className="sheet-header">
+                <div className="sheet-handle" />
+                <button className="sheet-close" onClick={() => setShowAdd(false)}>✕</button>
+              </div>
+              <div className="sheet-body">
+                <input id="noteTitleInput" placeholder="Title" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
+                <div className="note-input-toolbar">
+                  <label style={{ marginRight: 8 }}>
+                    <input type="checkbox" checked={newIsList} onChange={e => setNewIsList(e.target.checked)} /> List
+                  </label>
+                  <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '• ') }}>•</button>
+                  <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '1. ') }}>1.</button>
+                  <button title="Add date" onClick={e => { e.preventDefault(); setShowNewDate(s => !s) }}>📅</button>
+                  <button title="Color" onClick={e => { e.preventDefault(); setShowNewColorPicker(s => !s) }} style={{
+                    width: 28, height: 28, borderRadius: 16, background: newColor, border: '1px solid var(--border-color)'
+                  }} />
+                </div>
+                <textarea ref={addTextareaRef} id="noteInput" placeholder="Write your note..." value={newContent} onChange={e => setNewContent(e.target.value)} onKeyDown={continueMarkdownListOnEnter as any} />
+                {showNewDate && (
+                  <div className="date-row" style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input type="datetime-local" value={newDueAt} onChange={e => setNewDueAt(e.target.value)} />
+                    <button onClick={() => { setNewDueAt('') }}>Clear</button>
+                  </div>
+                )}
+                {showNewColorPicker && (
+                  <div className="color-selector">
+                    <div className="color-options">
+                      {getColorPresets().map(c => (
+                        <button key={c} className="color-option" style={{ background: c }} onClick={() => { setNewColor(c); setShowNewColorPicker(false) }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="share-toggle">
+                  <input id="shareNoteCheck" type="checkbox" checked={shareChecked} onChange={e => setShareChecked(e.target.checked)} /> Share this note
+                </div>
+                <div className="share-row" id="shareEmailsRow" style={{ display: shareChecked ? 'block' : 'none' }}>
+                  <input id="shareEmails" placeholder="Collaborator emails, comma separated" value={shareEmails} onChange={e => setShareEmails(e.target.value)} />
+                </div>
+              </div>
+              <div className="sheet-footer">
+                <button className="primary-btn" onClick={async () => {
+                  const id = crypto.randomUUID()
+                  const isShared = shareChecked
+                  const collaborators = shareEmails.split(',').map(s => s.trim()).filter(Boolean)
+                  await upsertLocalNote({ id, title: newTitle || 'Untitled', content: newContent, isShared, isList: newIsList, dueAt: newDueAt ? new Date(newDueAt).toISOString() : null, color: newColor })
+                  if (isShared && collaborators.length) {
+                    try {
+                      await syncNow()
+                      await updateSharing(id, { isShared: true, addCollaborators: collaborators })
+                    } catch {}
+                  }
+                  setNewTitle(''); setNewContent(''); setNewIsList(false); setShareChecked(false); setShareEmails(''); setShowNewDate(false); setNewDueAt(''); setShowAdd(false); setNewColor('#ffffff'); setShowNewColorPicker(false); await refresh(); show('Note added', 'success')
+                }}>Add</button>
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="notes-columns">
           <div className="notes-column">
@@ -136,15 +244,16 @@ export default function NotesPage() {
                         </ul>
                       )}
                     </div>
-                    <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
-                      <button className="pin-btn" title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
-                        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                          <circle cx="8" cy="4" r="2" fill="currentColor" />
-                          <path d="M8 6 L8 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                          <path d="M6 12 L8 15 L10 12 Z" fill="currentColor" />
-                        </svg>
-                      </button>
-                      <button title="Color" onClick={async () => { await upsertLocalNote({ id: n.id, color: nextColor(n.color) }); await refresh() }}>🎨</button>
+                     <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
+                      <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
+                      <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
+                      <button title="Add/Edit date" onClick={async () => {
+                        const current = n.dueAt ? new Date(n.dueAt) : null
+                        let value = prompt('Set date/time (YYYY-MM-DDTHH:mm). Empty to clear:', current ? new Date(current.getTime() - current.getTimezoneOffset()*60000).toISOString().slice(0,16) : '')
+                        if (value === null) return
+                        value = value.trim()
+                        await upsertLocalNote({ id: n.id, dueAt: value ? new Date(value).toISOString() : null }); await refresh()
+                      }}>📅</button>
                       <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
                       <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
                       <button className="delete-note" title="Delete" onClick={async () => {
@@ -155,6 +264,15 @@ export default function NotesPage() {
                         show('Note moved to trash', 'success')
                       }}>🗑</button>
                     </div>
+                    {colorPickerNoteId === n.id && (
+                      <div className="color-selector" style={{ marginTop: 6 }}>
+                        <div className="color-options">
+                          {getColorPresets().map(c => (
+                            <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: n.id, color: c }); setColorPickerNoteId(null); await refresh() }} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 {shareEditId === n.id && (
                   <div className="note-edit-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
@@ -196,15 +314,16 @@ export default function NotesPage() {
                         </ul>
                       )}
                     </div>
-                    <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
-                      <button className="pin-btn" title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
-                        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                          <circle cx="8" cy="4" r="2" fill="currentColor" />
-                          <path d="M8 6 L8 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                          <path d="M6 12 L8 15 L10 12 Z" fill="currentColor" />
-                        </svg>
-                      </button>
-                      <button title="Color" onClick={async () => { await upsertLocalNote({ id: n.id, color: nextColor(n.color) }); await refresh() }}>🎨</button>
+                     <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
+                      <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
+                      <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
+                      <button title="Add/Edit date" onClick={async () => {
+                        const current = n.dueAt ? new Date(n.dueAt) : null
+                        let value = prompt('Set date/time (YYYY-MM-DDTHH:mm). Empty to clear:', current ? new Date(current.getTime() - current.getTimezoneOffset()*60000).toISOString().slice(0,16) : '')
+                        if (value === null) return
+                        value = value.trim()
+                        await upsertLocalNote({ id: n.id, dueAt: value ? new Date(value).toISOString() : null }); await refresh()
+                      }}>📅</button>
                       <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
                       <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
                       <button className="delete-note" title="Delete" onClick={async () => {
@@ -214,6 +333,15 @@ export default function NotesPage() {
                         show('Note moved to trash', 'success')
                       }}>🗑</button>
                     </div>
+                    {colorPickerNoteId === n.id && (
+                      <div className="color-selector" style={{ marginTop: 6 }}>
+                        <div className="color-options">
+                          {getColorPresets().map(c => (
+                            <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: n.id, color: c }); setColorPickerNoteId(null); await refresh() }} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="note-meta">
                     <div className="note-meta-date">

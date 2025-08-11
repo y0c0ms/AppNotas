@@ -60,6 +60,11 @@ export default function SharedPage() {
 function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput, onReload, setConfirm, currentUserId }: any) {
   const isEditing = editingId === note.id
   const taRef = useRef<HTMLTextAreaElement | null>(null)
+  const dark = document.body.classList.contains('dark-mode')
+  const colorPresets = dark
+    ? ['#2d2e40', '#3a4157', '#2f4f4f', '#4b3a3a', '#394a3a', '#38404d']
+    : ['#ffffff', '#deeaff', '#ddffe7', '#ffdddd', '#fff59d', '#eddeff']
+  const [showColors, setShowColors] = useState(false)
   return (
     <div className="note-card">
       <div className="note-content">
@@ -83,9 +88,28 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
           )}
         </div>
         <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
+          <button title="Pin" onClick={async () => { await upsertLocalNote({ id: note.id, pinned: !note.pinned }); await syncNow(); await onReload() }}>📌</button>
+          <button title="Color" onClick={() => setShowColors(s => !s)} style={{ width: 28, height: 28, borderRadius: 16, background: note.color, border: '1px solid var(--border-color)' }} />
+          <button title="Add/Edit date" onClick={async () => {
+            const current = note.dueAt ? new Date(note.dueAt) : null
+            let value = prompt('Set date/time (YYYY-MM-DDTHH:mm). Empty to clear:', current ? new Date(current.getTime() - current.getTimezoneOffset()*60000).toISOString().slice(0,16) : '')
+            if (value === null) return
+            value = value.trim()
+            await upsertLocalNote({ id: note.id, dueAt: value ? new Date(value).toISOString() : null }); await syncNow(); await onReload()
+          }}>📅</button>
+          <button title={note.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: note.id, isList: !note.isList }); await syncNow(); await onReload() }}>{note.isList ? '📝' : '☑'}</button>
           <button className="edit-note" title="Edit note" onClick={() => setEditingId(isEditing ? null : note.id)}>✏️</button>
         </div>
       </div>
+      {showColors && (
+        <div className="color-selector" style={{ marginTop: 6 }}>
+          <div className="color-options">
+            {colorPresets.map(c => (
+              <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: note.id, color: c }); setShowColors(false); await syncNow(); await onReload() }} />
+            ))}
+          </div>
+        </div>
+      )}
       {isEditing && (
         <div className="note-edit-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {note.userId === currentUserId && (
