@@ -36,6 +36,7 @@ export async function syncNow() {
         reminderAt: n.reminderAt ? new Date(n.reminderAt).toISOString() : null,
         deletedAt: n.deletedAt ? new Date(n.deletedAt).toISOString() : null,
         isShared: n.isShared,
+        // server does not know about isList; keep existing flag
         updatedAt: new Date(n.updatedAt).toISOString()
       })
     }

@@ -20,6 +20,7 @@ export type NoteRecord = {
   deletedAt?: string | null
   updatedAt: string
   isShared: boolean
+  isList?: boolean
 }
 
 export type PendingOp = {
@@ -57,6 +58,21 @@ export class AppDb extends Dexie {
       pendingOps: 'id, updatedAt',
       syncState: 'id',
       session: 'id'
+    })
+    // bump to v2 to introduce isList flag (no index change)
+    this.version(2).stores({
+      notes: 'id, updatedAt, deletedAt, userId',
+      pendingOps: 'id, updatedAt',
+      syncState: 'id',
+      session: 'id'
+    }).upgrade(async tx => {
+      const all = await tx.table('notes').toArray()
+      for (const n of all) {
+        if (typeof (n as any).isList === 'undefined') {
+          ;(n as any).isList = false
+          await tx.table('notes').put(n)
+        }
+      }
     })
   }
 }

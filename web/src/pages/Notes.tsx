@@ -16,6 +16,7 @@ export default function NotesPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newContent, setNewContent] = useState('')
+  const [newIsList, setNewIsList] = useState(false)
   const [shareChecked, setShareChecked] = useState(false)
   const [shareEmails, setShareEmails] = useState('')
   const addTextareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -80,6 +81,9 @@ export default function NotesPage() {
           <div className={`add-note-form ${showAdd ? 'open' : ''}`}>
             <input id="noteTitleInput" placeholder="Title" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
             <div className="note-input-toolbar">
+              <label style={{ marginRight: 8 }}>
+                <input type="checkbox" checked={newIsList} onChange={e => setNewIsList(e.target.checked)} /> List
+              </label>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '• ') }}>•</button>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '1. ') }}>1.</button>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) toggleTaskAtCursor(addTextareaRef.current) }}>☑</button>
@@ -97,7 +101,7 @@ export default function NotesPage() {
                 const id = crypto.randomUUID()
                 const isShared = shareChecked
                 const collaborators = shareEmails.split(',').map(s => s.trim()).filter(Boolean)
-                await upsertLocalNote({ id, title: newTitle || 'Untitled', content: newContent, isShared })
+                await upsertLocalNote({ id, title: newTitle || 'Untitled', content: newContent, isShared, isList: newIsList })
                 if (isShared && collaborators.length) {
                   try {
                     // Ensure the note exists on the server before sharing
@@ -105,7 +109,7 @@ export default function NotesPage() {
                     await updateSharing(id, { isShared: true, addCollaborators: collaborators })
                   } catch {}
                 }
-                setNewTitle(''); setNewContent(''); setShareChecked(false); setShareEmails(''); setShowAdd(false); await refresh(); show('Note added', 'success')
+                setNewTitle(''); setNewContent(''); setNewIsList(false); setShareChecked(false); setShareEmails(''); setShowAdd(false); await refresh(); show('Note added', 'success')
               }}>Add</button>
             </div>
           </div>
@@ -121,18 +125,27 @@ export default function NotesPage() {
                     <div className="note-text" style={{ width: '100%' }}>
                       <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
                       <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
-                      <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
-                        {parseChecklist(n.content).map((it) => (
-                          <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(n.id, n.content, it.index)} />
-                            <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      {n.isList && (
+                        <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
+                          {parseChecklist(n.content).map((it) => (
+                            <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(n.id, n.content, it.index)} />
+                              <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                     <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
-                      <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
+                      <button className="pin-btn" title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                          <circle cx="8" cy="4" r="2" fill="currentColor" />
+                          <path d="M8 6 L8 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                          <path d="M6 12 L8 15 L10 12 Z" fill="currentColor" />
+                        </svg>
+                      </button>
                       <button title="Color" onClick={async () => { await upsertLocalNote({ id: n.id, color: nextColor(n.color) }); await refresh() }}>🎨</button>
+                      <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
                       <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
                       <button className="delete-note" title="Delete" onClick={async () => {
                         await deleteLocalNote(n.id)
@@ -170,18 +183,27 @@ export default function NotesPage() {
                     <div className="note-text" style={{ width: '100%' }}>
                       <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
                       <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
-                      <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
-                        {parseChecklist(n.content).map((it) => (
-                          <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(n.id, n.content, it.index)} />
-                            <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      {n.isList && (
+                        <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
+                          {parseChecklist(n.content).map((it) => (
+                            <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(n.id, n.content, it.index)} />
+                              <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                     <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
-                      <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
+                      <button className="pin-btn" title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                          <circle cx="8" cy="4" r="2" fill="currentColor" />
+                          <path d="M8 6 L8 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                          <path d="M6 12 L8 15 L10 12 Z" fill="currentColor" />
+                        </svg>
+                      </button>
                       <button title="Color" onClick={async () => { await upsertLocalNote({ id: n.id, color: nextColor(n.color) }); await refresh() }}>🎨</button>
+                      <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
                       <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
                       <button className="delete-note" title="Delete" onClick={async () => {
                         await deleteLocalNote(n.id)
