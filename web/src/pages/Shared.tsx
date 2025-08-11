@@ -5,7 +5,7 @@ import { getSession } from '../lib/session'
 import Header from '../components/Header'
 import { continueMarkdownListOnEnter, insertPrefixAtCursor } from '../lib/md'
 import { updateSharing, leaveNote } from '../lib/shareApi'
-import { upsertLocalNote } from '../lib/notes'
+import { upsertLocalNote, updateLocalFields } from '../lib/notes'
 import { syncNow } from '../lib/sync'
 import '../clean.css'
 
@@ -18,6 +18,9 @@ export default function SharedPage() {
 
   useEffect(() => {
     reload()
+    const onFetched = () => reload()
+    window.addEventListener('notes:fetched', onFetched)
+    return () => window.removeEventListener('notes:fetched', onFetched)
   }, [])
 
   async function reload() {
@@ -83,6 +86,7 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
     await upsertLocalNote({ id: noteId, content: newContent })
     await syncNow(); await onReload()
   }
+  const toPlainTextFromChecklist = (content: string) => parseChecklist(content).map(i => i.checked ? `${i.text} x` : i.text).join('\n')
   return (
     <div className="note-card">
       <div className="note-content">
@@ -117,7 +121,7 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
           )}
         </div>
         <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
-          <button title="Pin" onClick={async () => { await upsertLocalNote({ id: note.id, pinned: !note.pinned }); await syncNow(); await onReload() }}>📌</button>
+          <button title="Pin" onClick={async () => { await updateLocalFields(note.id, { pinned: !note.pinned }); await onReload() }}>📌</button>
           <button className="edit-note" title="Edit note" onClick={() => setEditingId(isEditing ? null : note.id)}>✏️</button>
           <button className="delete-note" title="Delete or Leave" onClick={async () => {
             const me = await getSession()
@@ -149,7 +153,16 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
             const v = e.target.value
             await upsertLocalNote({ id: note.id, dueAt: v ? new Date(v).toISOString() : null }); await syncNow(); await onReload()
           }} style={{ height: 28 }} />
-          <button title={note.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: note.id, isList: !note.isList }); await syncNow(); await onReload() }}>{note.isList ? '📝' : '☑'}</button>
+          <button title={note.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => {
+            if (note.isList) {
+              // Convert list to plain text with trailing x on checked
+              const plain = toPlainTextFromChecklist(note.content)
+              await upsertLocalNote({ id: note.id, isList: false, content: plain })
+            } else {
+              await upsertLocalNote({ id: note.id, isList: true })
+            }
+            await syncNow(); await onReload()
+          }}>{note.isList ? '📝' : '☑'}</button>
           <div className="color-selector" style={{ marginTop: 6 }}>
             <div className="color-options">
               {colorPresets.map(c => (

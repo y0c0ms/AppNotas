@@ -60,6 +60,8 @@ export async function fetchAndCacheNotes() {
       await db.notes.put({ ...mapped, isList: existing?.isList ?? false, ownerEmail: mapped.userId === s?.userId ? (s?.email || mapped.ownerEmail) : mapped.ownerEmail })
     }
   })
+  // Trigger UI sync events so pages can refresh without navigation
+  window.dispatchEvent(new Event('notes:fetched'))
   return all.length
 }
 

@@ -36,9 +36,18 @@ export async function upsertLocalNote(partial: Partial<NoteRecord> & { id: strin
     updatedAt: now
   }
   await db.notes.put(rec)
-  const { isList, ...serverData } = rec as any
+  const { isList, pinned, ...serverData } = rec as any
   await queueOp({ id: rec.id, type: 'upsert', entity: 'note', updatedAt: rec.updatedAt, data: serverData })
   return rec
+}
+
+// Update fields locally without queuing a sync operation. Useful for user-local state like pinned.
+export async function updateLocalFields(id: string, patch: Partial<NoteRecord>) {
+  const existing = await db.notes.get(id)
+  if (!existing) return
+  const updated = { ...existing, ...patch }
+  await db.notes.put(updated)
+  return updated
 }
 
 export async function deleteLocalNote(id: string) {

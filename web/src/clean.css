@@ -64,6 +64,7 @@ header{display:flex;justify-content:space-between;align-items:center;padding:1re
 .auth-actions-row{display:flex;justify-content:flex-end;gap:12px;margin-top:8px}
 .auth-actions-row .primary-btn[disabled]{opacity:.6;cursor:not-allowed}
 input{padding:.75rem;border:1px solid var(--border-color);border-radius:.5rem;background-color:var(--card-bg);color:var(--text-color);font-size:1rem;transition:border-color var(--anim-duration),box-shadow var(--anim-duration)}
+input[type="email"], input[name*="email"] {-webkit-text-security:none;text-transform:none}
 input:focus{outline:none;border-color:var(--primary-color);box-shadow:0 0 0 3px var(--primary-color-light)}
 button{background-color:var(--primary-color);color:#fff;border:none;padding:.5rem 1rem;border-radius:.25rem;cursor:pointer;transition:background-color var(--anim-duration),transform var(--anim-duration),box-shadow var(--anim-duration)}
 button:hover{background-color:var(--secondary-color);transform:translateY(-2px);box-shadow:0 3px 8px rgba(0,0,0,.15)}
