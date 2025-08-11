@@ -6,7 +6,7 @@ import { useToast } from '../components/Toast'
 import Header from '../components/Header'
 import { syncNow } from '../lib/sync'
 import '../clean.css'
-import { insertPrefixAtCursor, continueMarkdownListOnEnter, toggleTaskAtCursor, moveCheckedTasksToEnd } from '../lib/md'
+import { insertPrefixAtCursor, continueMarkdownListOnEnter } from '../lib/md'
 
 export default function NotesPage() {
   const [notes, setNotes] = useState<any[]>([])
@@ -86,8 +86,6 @@ export default function NotesPage() {
               </label>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '• ') }}>•</button>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '1. ') }}>1.</button>
-              <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) toggleTaskAtCursor(addTextareaRef.current) }}>☑</button>
-              <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) moveCheckedTasksToEnd(addTextareaRef.current) }}>⇩☑</button>
             </div>
             <textarea ref={addTextareaRef} id="noteInput" placeholder="Write your note..." value={newContent} onChange={e => setNewContent(e.target.value)} onKeyDown={continueMarkdownListOnEnter as any} />
             <div className="share-toggle">
@@ -124,7 +122,9 @@ export default function NotesPage() {
                   <div className="note-content">
                     <div className="note-text" style={{ width: '100%' }}>
                       <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
-                      <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+                      {!n.isList && (
+                        <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+                      )}
                       {n.isList && (
                         <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
                           {parseChecklist(n.content).map((it) => (
@@ -182,7 +182,9 @@ export default function NotesPage() {
                   <div className="note-content">
                     <div className="note-text" style={{ width: '100%' }}>
                       <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
-                      <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+                      {!n.isList && (
+                        <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+                      )}
                       {n.isList && (
                         <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
                           {parseChecklist(n.content).map((it) => (
