@@ -209,8 +209,10 @@ button:active{transform:translateY(0)}
 /* Bottom sheet for mobile add form */
 .bottom-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);opacity:0;visibility:hidden;transition:opacity .25s;z-index:999}
 .bottom-sheet-overlay.open{opacity:1;visibility:visible}
-.bottom-sheet{position:fixed;left:0;right:0;bottom:-100%;background:var(--card-bg);border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -8px 24px rgba(0,0,0,.25);transition:bottom .3s;z-index:1000;max-height:85vh;display:flex;flex-direction:column}
-.bottom-sheet.open{bottom:0}
+.bottom-sheet{position:fixed;left:50%;right:auto;bottom:0;transform:translate(-50%, 100%);background:var(--card-bg);border-top-left-radius:16px;border-top-right-radius:16px;box-shadow:0 -8px 24px rgba(0,0,0,.25);transition:transform .3s ease;z-index:1000;width:min(640px, 100%);max-height:clamp(320px, 75vh, 90vh);display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+.bottom-sheet.open{transform:translate(-50%, 0)}
+.bottom-sheet .sheet-body{flex:1;min-height:0;overflow:auto}
+.bottom-sheet{contain:layout paint}
 .sheet-header{display:flex;align-items:center;justify-content:space-between;padding:10px}
 .sheet-handle{width:40px;height:4px;border-radius:2px;background:var(--border-color);margin:6px auto}
 .sheet-close{background:none;color:var(--text-color);font-size:1.25rem}

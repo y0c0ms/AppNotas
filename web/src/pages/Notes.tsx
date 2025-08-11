@@ -232,13 +232,10 @@ export default function NotesPage() {
                       <div className="note-actions" style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
                         <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
                         <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
-                        <button title="Add/Edit date" onClick={async () => {
-                          const current = n.dueAt ? new Date(n.dueAt) : null
-                          let value = prompt('Set date/time (YYYY-MM-DDTHH:mm). Empty to clear:', current ? new Date(current.getTime() - current.getTimezoneOffset()*60000).toISOString().slice(0,16) : '')
-                          if (value === null) return
-                          value = value.trim()
-                          await upsertLocalNote({ id: n.id, dueAt: value ? new Date(value).toISOString() : null }); await refresh()
-                        }}>📅</button>
+                        <input type="datetime-local" aria-label="Due date" value={n.dueAt ? new Date(new Date(n.dueAt).getTime() - new Date(n.dueAt).getTimezoneOffset()*60000).toISOString().slice(0,16) : ''} onChange={async (e) => {
+                          const v = e.target.value
+                          await upsertLocalNote({ id: n.id, dueAt: v ? new Date(v).toISOString() : null }); await refresh()
+                        }} style={{ height: 28 }} />
                         <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
                         <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
                         <button className="delete-note" title="Delete" onClick={async () => {
@@ -317,13 +314,10 @@ export default function NotesPage() {
                      <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
                       <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
                       <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
-                      <button title="Add/Edit date" onClick={async () => {
-                        const current = n.dueAt ? new Date(n.dueAt) : null
-                        let value = prompt('Set date/time (YYYY-MM-DDTHH:mm). Empty to clear:', current ? new Date(current.getTime() - current.getTimezoneOffset()*60000).toISOString().slice(0,16) : '')
-                        if (value === null) return
-                        value = value.trim()
-                        await upsertLocalNote({ id: n.id, dueAt: value ? new Date(value).toISOString() : null }); await refresh()
-                      }}>📅</button>
+                      <input type="datetime-local" aria-label="Due date" value={n.dueAt ? new Date(new Date(n.dueAt).getTime() - new Date(n.dueAt).getTimezoneOffset()*60000).toISOString().slice(0,16) : ''} onChange={async (e) => {
+                        const v = e.target.value
+                        await upsertLocalNote({ id: n.id, dueAt: v ? new Date(v).toISOString() : null }); await refresh()
+                      }} style={{ height: 28 }} />
                       <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
                       <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
                       <button className="delete-note" title="Delete" onClick={async () => {

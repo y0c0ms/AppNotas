@@ -119,13 +119,10 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
         <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
           <button title="Pin" onClick={async () => { await upsertLocalNote({ id: note.id, pinned: !note.pinned }); await syncNow(); await onReload() }}>📌</button>
           <button title="Color" onClick={() => setShowColors(s => !s)} style={{ width: 28, height: 28, borderRadius: 16, background: note.color, border: '1px solid var(--border-color)' }} />
-          <button title="Add/Edit date" onClick={async () => {
-            const current = note.dueAt ? new Date(note.dueAt) : null
-            let value = prompt('Set date/time (YYYY-MM-DDTHH:mm). Empty to clear:', current ? new Date(current.getTime() - current.getTimezoneOffset()*60000).toISOString().slice(0,16) : '')
-            if (value === null) return
-            value = value.trim()
-            await upsertLocalNote({ id: note.id, dueAt: value ? new Date(value).toISOString() : null }); await syncNow(); await onReload()
-          }}>📅</button>
+          <input type="datetime-local" aria-label="Due date" value={note.dueAt ? new Date(new Date(note.dueAt).getTime() - new Date(note.dueAt).getTimezoneOffset()*60000).toISOString().slice(0,16) : ''} onChange={async (e) => {
+            const v = e.target.value
+            await upsertLocalNote({ id: note.id, dueAt: v ? new Date(v).toISOString() : null }); await syncNow(); await onReload()
+          }} style={{ height: 28 }} />
           <button title={note.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: note.id, isList: !note.isList }); await syncNow(); await onReload() }}>{note.isList ? '📝' : '☑'}</button>
           <button className="edit-note" title="Edit note" onClick={() => setEditingId(isEditing ? null : note.id)}>✏️</button>
         </div>
@@ -134,7 +131,7 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
         <div className="color-selector" style={{ marginTop: 6 }}>
           <div className="color-options">
             {colorPresets.map(c => (
-              <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: note.id, color: c }); setShowColors(false); await syncNow(); await onReload() }} />
+              <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: note.id, color: c }); await syncNow(); setShowColors(false); await onReload() }} />
             ))}
           </div>
         </div>
