@@ -133,8 +133,8 @@ button:active{transform:translateY(0)}
 .calendar-checkbox{width:36px;height:36px;min-width:36px;min-height:36px;margin-left:6px;border-radius:50%;background:var(--note-color-default);border:1px solid var(--secondary-color);color:var(--text-color);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s;padding:0}
 .calendar-checkbox:hover{background-color:var(--primary-color);color:#fff;transform:translateY(-2px);box-shadow:0 3px 5px rgba(0,0,0,.2)}
 .calendar-checkbox.has-date{color:var(--primary-color);border-color:var(--primary-color)}
-.notes-columns{display:flex;gap:24px;height:calc(100vh - 200px);overflow:hidden;justify-content:center;align-items:flex-start;flex-wrap:wrap}
-.notes-column{flex:0 1 420px;display:flex;flex-direction:column;min-width:320px;max-width:520px}
+.notes-columns{display:flex;gap:24px;min-height:calc(100vh - 160px);overflow-x:hidden;justify-content:center;align-items:flex-start;flex-wrap:wrap;padding:0 16px}
+.notes-column{flex:1 1 520px;display:flex;flex-direction:column;min-width:360px;max-width:720px}
 #sharedView .notes-list{height:calc(100vh - 260px);overflow-y:auto}
 .column-header{font-size:1rem;margin:0 0 10px 0;padding:8px 12px;background-color:var(--primary-color-light);color:var(--text-color);border-radius:10px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.06)}
 .note-color-editor{position:absolute;top:100%;right:0;display:flex;background-color:var(--note-color-default);border-radius:8px;padding:8px;box-shadow:0 4px 8px rgba(0,0,0,.2);z-index:10;border:1px solid var(--secondary-color)}

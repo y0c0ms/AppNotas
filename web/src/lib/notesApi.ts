@@ -56,7 +56,8 @@ export async function fetchAndCacheNotes() {
     for (const n of all) {
       const mapped = mapServerNote(n)
       // Tag owner email if we know it
-      await db.notes.put({ ...mapped, ownerEmail: mapped.userId === s?.userId ? (s?.email || mapped.ownerEmail) : mapped.ownerEmail })
+      const existing = await db.notes.get(mapped.id)
+      await db.notes.put({ ...mapped, isList: existing?.isList ?? false, ownerEmail: mapped.userId === s?.userId ? (s?.email || mapped.ownerEmail) : mapped.ownerEmail })
     }
   })
   return all.length
