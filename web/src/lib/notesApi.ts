@@ -48,7 +48,15 @@ function mapServerNote(n: ServerNote): NoteRecord {
   }
 }
 
+let inflight: Promise<number> | null = null
+let lastFetchMs = 0
+const FETCH_COOLDOWN_MS = 1000
+
 export async function fetchAndCacheNotes() {
+  const now = Date.now()
+  if (inflight) return inflight
+  if (now - lastFetchMs < FETCH_COOLDOWN_MS) return 0
+  inflight = (async () => {
   const { own, shared } = await fetchNotesLists()
   const all = [...(own || []), ...(shared || [])]
   const s = await getSession()
@@ -60,9 +68,11 @@ export async function fetchAndCacheNotes() {
       await db.notes.put({ ...mapped, isList: existing?.isList ?? false, ownerEmail: mapped.userId === s?.userId ? (s?.email || mapped.ownerEmail) : mapped.ownerEmail })
     }
   })
-  // Trigger UI sync events so pages can refresh without navigation
-  window.dispatchEvent(new Event('notes:fetched'))
+  lastFetchMs = Date.now()
+  inflight = null
   return all.length
+  })()
+  return inflight
 }
 
 export async function fetchNotesLists() {

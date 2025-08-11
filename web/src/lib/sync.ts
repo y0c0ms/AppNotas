@@ -43,6 +43,8 @@ export async function syncNow() {
       })
     }
     await db.syncState.put({ id: 'state', clientCursor: res.newCursor })
+    // After applying server changes, broadcast to listeners; debounce handled by fetch layer
+    window.dispatchEvent(new Event('notes:fetched'))
   } catch (e) {
     // swallow; show UI toast in caller if needed
   }

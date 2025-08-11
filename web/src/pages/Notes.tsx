@@ -60,6 +60,7 @@ export default function NotesPage() {
     const checked = items.filter(i => i.checked)
     const newContent = [...unchecked, ...checked].map(i => (i.checked ? `[x] ${i.text}` : `[ ] ${i.text}`)).join('\n')
     await upsertLocalNote({ id: noteId, content: newContent })
+    // don't fetch immediately; local refresh only
     await refresh()
   }
 
