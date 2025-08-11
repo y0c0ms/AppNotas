@@ -32,7 +32,12 @@ export default function Header() {
     <header>
       <div className="app-logo">
         <img className="app-icon" src="/icons/icon-192.png" alt="App icon" />
-        <button className="add-header-btn" onClick={() => window.dispatchEvent(new CustomEvent('notes:openAdd'))}>
+        <button
+          className="add-header-btn"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('notes:openAdd'))
+          }}
+        >
           + Add a Note
         </button>
         <button className="burger" aria-label="Menu" onClick={() => setMenuOpen(s => !s)}>☰</button>

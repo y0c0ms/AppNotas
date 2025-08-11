@@ -99,19 +99,14 @@ export default function NotesPage() {
 
       <main>
         <div className="add-note-container">
-          <button className="toggle-add-note" onClick={() => setShowAdd(s => !s)}>
-            <span className="plus-icon">＋</span>
-            {showAdd ? 'Close' : 'Add a Note'}
-          </button>
+          {/* Removed in-page add button; header button controls sheet */}
           {!isMobile && (
           <div className={`add-note-form ${showAdd ? 'open' : ''}`}>
             <input id="noteTitleInput" placeholder="Title" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
             <div className="note-input-toolbar">
-              <label style={{ marginRight: 8 }}>
-                <input type="checkbox" checked={newIsList} onChange={e => setNewIsList(e.target.checked)} /> List
-              </label>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '• ') }}>•</button>
               <button onClick={e => { e.preventDefault(); if (addTextareaRef.current) insertPrefixAtCursor(addTextareaRef.current, '1. ') }}>1.</button>
+              <button title="Toggle list" onClick={e => { e.preventDefault(); setNewIsList(v => !v) }}>{newIsList ? '📝' : '☑'}</button>
               <button title="Add date" onClick={e => { e.preventDefault(); setShowNewDate(s => !s) }}>📅</button>
               <button title="Color" onClick={e => { e.preventDefault(); setShowNewColorPicker(s => !s) }} style={{
                 width: 28, height: 28, borderRadius: 16, background: newColor, border: '1px solid var(--border-color)'
@@ -195,11 +190,11 @@ export default function NotesPage() {
                     </div>
                   </div>
                 )}
-                <div className="share-toggle">
-                  <input id="shareNoteCheck" type="checkbox" checked={shareChecked} onChange={e => setShareChecked(e.target.checked)} /> Share this note
-                </div>
-                <div className="share-row" id="shareEmailsRow" style={{ display: shareChecked ? 'block' : 'none' }}>
-                  <input id="shareEmails" placeholder="Collaborator emails, comma separated" value={shareEmails} onChange={e => setShareEmails(e.target.value)} />
+                <div className="share-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button title="Share" onClick={() => setShareChecked(v => !v)}>{shareChecked ? '🤝 On' : '🤝 Off'}</button>
+                  {shareChecked && (
+                    <input id="shareEmails" placeholder="Collaborator emails, comma separated" value={shareEmails} onChange={e => setShareEmails(e.target.value)} />
+                  )}
                 </div>
               </div>
               <div className="sheet-footer">
