@@ -18,6 +18,7 @@ export async function syncNow() {
     for (const ch of res.changes as any[]) {
       if (ch.entity !== 'note') continue
       const n = ch.note
+      const existing = await db.notes.get(n.id)
       await db.notes.put({
         id: n.id,
         userId: n.userId,
@@ -36,7 +37,8 @@ export async function syncNow() {
         reminderAt: n.reminderAt ? new Date(n.reminderAt).toISOString() : null,
         deletedAt: n.deletedAt ? new Date(n.deletedAt).toISOString() : null,
         isShared: n.isShared,
-        // server does not know about isList; keep existing flag
+        // keep local-only flags
+        isList: existing?.isList ?? false,
         updatedAt: new Date(n.updatedAt).toISOString()
       })
     }

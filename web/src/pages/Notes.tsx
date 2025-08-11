@@ -229,6 +229,25 @@ export default function NotesPage() {
                 <div key={n.id} className="note-card" style={{ backgroundColor: n.color }}>
                   <div className="note-content">
                     <div className="note-text" style={{ width: '100%' }}>
+                      <div className="note-actions" style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                        <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
+                        <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
+                        <button title="Add/Edit date" onClick={async () => {
+                          const current = n.dueAt ? new Date(n.dueAt) : null
+                          let value = prompt('Set date/time (YYYY-MM-DDTHH:mm). Empty to clear:', current ? new Date(current.getTime() - current.getTimezoneOffset()*60000).toISOString().slice(0,16) : '')
+                          if (value === null) return
+                          value = value.trim()
+                          await upsertLocalNote({ id: n.id, dueAt: value ? new Date(value).toISOString() : null }); await refresh()
+                        }}>📅</button>
+                        <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
+                        <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
+                        <button className="delete-note" title="Delete" onClick={async () => {
+                          await deleteLocalNote(n.id)
+                          await syncNow()
+                          await refresh()
+                          show('Note moved to trash', 'success')
+                        }}>🗑</button>
+                      </div>
                       <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
                       {!n.isList && (
                         <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
@@ -244,26 +263,7 @@ export default function NotesPage() {
                         </ul>
                       )}
                     </div>
-                     <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
-                      <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
-                      <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
-                      <button title="Add/Edit date" onClick={async () => {
-                        const current = n.dueAt ? new Date(n.dueAt) : null
-                        let value = prompt('Set date/time (YYYY-MM-DDTHH:mm). Empty to clear:', current ? new Date(current.getTime() - current.getTimezoneOffset()*60000).toISOString().slice(0,16) : '')
-                        if (value === null) return
-                        value = value.trim()
-                        await upsertLocalNote({ id: n.id, dueAt: value ? new Date(value).toISOString() : null }); await refresh()
-                      }}>📅</button>
-                      <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
-                      <button title="Share" onClick={() => { setShareEditId(n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>🤝</button>
-                      <button className="delete-note" title="Delete" onClick={async () => {
-                        await deleteLocalNote(n.id)
-                        // enqueue delete op already done in deleteLocalNote
-                        await syncNow()
-                        await refresh()
-                        show('Note moved to trash', 'success')
-                      }}>🗑</button>
-                    </div>
+                    
                     {colorPickerNoteId === n.id && (
                       <div className="color-selector" style={{ marginTop: 6 }}>
                         <div className="color-options">
