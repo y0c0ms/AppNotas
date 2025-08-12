@@ -62,7 +62,7 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
   const colorPresets = dark
     ? ['#1E3A8A', '#0F766E', '#7C3AED', '#9D174D', '#A16207', '#14532D']
     : ['#ffffff', '#deeaff', '#ddffe7', '#ffdddd', '#fff59d', '#eddeff']
-  const [showColors] = useState(false)
+  const [showColors, setShowColors] = useState(false)
   const parseChecklist = (content: string) => (content || '').split('\n').map((raw, idx) => {
     const mChecked = /^\s*\[x\]\s*/i.exec(raw)
     const mUnchecked = /^\s*\[\s?\]\s*/.exec(raw)
@@ -105,11 +105,24 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
               {note.userId === currentUserId && (
                 <input className="edit-text-input" defaultValue={note.title} style={{ marginBottom: 8 }} readOnly />
               )}
-              <div className="note-input-toolbar">
-                <button onClick={e => { e.preventDefault(); if (taRef.current) insertPrefixAtCursor(taRef.current, '• ') }}>•</button>
-                <button onClick={e => { e.preventDefault(); if (taRef.current) insertPrefixAtCursor(taRef.current, '1. ') }}>1.</button>
-              </div>
-              <textarea ref={taRef} className="edit-text-input" defaultValue={note.content} onKeyDown={continueMarkdownListOnEnter as any} />
+              {!note.isList ? (
+                <>
+                  <div className="note-input-toolbar">
+                    <button onClick={e => { e.preventDefault(); if (taRef.current) insertPrefixAtCursor(taRef.current, '• ') }}>•</button>
+                    <button onClick={e => { e.preventDefault(); if (taRef.current) insertPrefixAtCursor(taRef.current, '1. ') }}>1.</button>
+                  </div>
+                  <textarea ref={taRef} className="edit-text-input" defaultValue={note.content} onKeyDown={continueMarkdownListOnEnter as any} />
+                </>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
+                  {parseChecklist(note.content).map((it) => (
+                    <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(note.id, note.content, it.index)} />
+                      <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </>
           )}
         </div>
@@ -128,7 +141,7 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
           }}>🗑</button>
         </div>
       </div>
-      {showColors && null}
+      {/* color palette toggled below */}
       {isEditing && (
         <div className="note-edit-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {note.userId === currentUserId && (
@@ -163,15 +176,18 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
             } else {
               await upsertLocalNote({ id: note.id, isList: true })
             }
-            await syncNow(); await onReload()
+            await onReload()
           }}>{note.isList ? '📝' : '☑'}</button>
-          <div className="color-selector" style={{ marginTop: 6 }}>
-            <div className="color-options">
-              {colorPresets.map(c => (
-                <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: note.id, color: c }); await syncNow(); await onReload() }} />
-              ))}
+          <button title="Color" onClick={() => setShowColors(v => !v)} style={{ width: 28, height: 28, borderRadius: 16, background: note.color, border: '1px solid var(--border-color)' }} />
+          {showColors && (
+            <div className="color-selector" style={{ marginTop: 6 }}>
+              <div className="color-options">
+                {colorPresets.map(c => (
+                  <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: note.id, color: c }); setShowColors(false); await onReload() }} />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           <button className="primary-btn" onClick={async () => {
             try {
               const val = taRef.current?.value ?? note.content
