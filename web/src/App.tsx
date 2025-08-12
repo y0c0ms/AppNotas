@@ -8,6 +8,7 @@ import RegisterPage from './pages/Register'
 import { useEffect, useState } from 'react'
 import { isAuthenticated } from './lib/session'
 import { syncNow } from './lib/sync'
+import './clean.css'
 
 function App() {
   const [authed, setAuthed] = useState<boolean | null>(null)
@@ -15,7 +16,20 @@ function App() {
   useEffect(() => {
     const onChange = () => { isAuthenticated().then(setAuthed) }
     window.addEventListener('auth:changed', onChange)
-    return () => window.removeEventListener('auth:changed', onChange)
+    const onExpired = () => {
+      setAuthed(false)
+      const modal = document.createElement('div')
+      modal.className = 'note-popup'
+      modal.innerHTML = `<div style="margin-bottom:8px">Your session expired. Please log in again.</div><div class="actions"><button id="reloginBtn" class="primary-btn">Log in</button></div>`
+      document.body.appendChild(modal)
+      const btn = modal.querySelector('#reloginBtn') as HTMLButtonElement
+      btn?.addEventListener('click', () => {
+        try { window.location.hash = '#/login' } catch {}
+        setTimeout(() => modal.remove(), 0)
+      })
+    }
+    window.addEventListener('auth:expired', onExpired)
+    return () => { window.removeEventListener('auth:changed', onChange); window.removeEventListener('auth:expired', onExpired) }
   }, [])
   useEffect(() => {
     const onFocus = () => { syncNow().catch(() => {}) }

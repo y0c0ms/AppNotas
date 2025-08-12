@@ -16,6 +16,10 @@ const api = createApi(() => inMemoryAccessToken, async () => {
     })()
     const done = await refreshInFlight
     refreshInFlight = null
+    if (!done) {
+      // notify UI to prompt login
+      try { window.dispatchEvent(new CustomEvent('auth:expired')) } catch {}
+    }
     return done
   }
   return refreshInFlight

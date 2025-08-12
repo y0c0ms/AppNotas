@@ -50,7 +50,8 @@ export default function NotesPage() {
       return { index: idx, checked: false, text: raw }
     })
   }
-  const toPlainTextFromChecklist = (content: string) => parseChecklist(content).map(i => i.checked ? `${i.text} x` : i.text).join('\n')
+  // Use a check symbol ✓ to mark completed when converting to plain note
+  const toPlainTextFromChecklist = (content: string) => parseChecklist(content).map(i => i.checked ? `${i.text} ✓` : i.text).join('\n')
 
   async function toggleChecklist(noteId: string, content: string, itemIndex: number) {
     const items = parseChecklist(content)
@@ -264,11 +265,18 @@ export default function NotesPage() {
                             const plain = toPlainTextFromChecklist(n.content)
                             await upsertLocalNote({ id: n.id, isList: false, content: plain })
                           } else {
-                            await upsertLocalNote({ id: n.id, isList: true })
+                            // convert back to checklist: any line that ends with ✓ becomes checked
+                            const lines = (n.content || '').split('\n')
+                            const rebuilt = lines.map((l: string) => {
+                              const trimmed = l.trimEnd()
+                              if (trimmed.endsWith('✓')) return `[x] ${trimmed.replace(/\s*✓$/, '')}`
+                              return `[ ] ${l}`
+                            }).join('\n')
+                            await upsertLocalNote({ id: n.id, isList: true, content: rebuilt })
                           }
                           await refresh()
                         }}>{n.isList ? '📝' : '☑'}</button>
-                        <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
+                       <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
                         <label className="share-toggle"><input type="checkbox" checked={shareEditChecked} onChange={e => setShareEditChecked(e.target.checked)} /> Share this note</label>
                         {shareEditChecked && (
                           <div className="share-row"><input placeholder="Collaborator emails, comma separated" value={shareEditEmails} onChange={e => setShareEditEmails(e.target.value)} /></div>

@@ -79,7 +79,7 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
     // throttle sync by letting background sync run; only local reload
     await onReload()
   }
-  const toPlainTextFromChecklist = (content: string) => parseChecklist(content).map(i => i.checked ? `${i.text} x` : i.text).join('\n')
+  const toPlainTextFromChecklist = (content: string) => parseChecklist(content).map(i => i.checked ? `${i.text} ✓` : i.text).join('\n')
   return (
     <div className="note-card">
       <div className="note-content">
@@ -102,7 +102,9 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
             </div>
           ) : (
             <>
-              {note.userId === currentUserId && (
+              {note.userId === currentUserId ? (
+                <input className="edit-text-input" defaultValue={note.title} style={{ marginBottom: 8 }} onChange={async (e) => { await upsertLocalNote({ id: note.id, title: e.target.value }); await onReload() }} />
+              ) : (
                 <input className="edit-text-input" defaultValue={note.title} style={{ marginBottom: 8 }} readOnly />
               )}
               {!note.isList ? (
@@ -170,11 +172,16 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
           )}
           <button title={note.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => {
             if (note.isList) {
-              // Convert list to plain text with trailing x on checked
               const plain = toPlainTextFromChecklist(note.content)
               await upsertLocalNote({ id: note.id, isList: false, content: plain })
             } else {
-              await upsertLocalNote({ id: note.id, isList: true })
+              const lines = (note.content || '').split('\n')
+              const rebuilt = lines.map((l: string) => {
+                const trimmed = l.trimEnd()
+                if (trimmed.endsWith('✓')) return `[x] ${trimmed.replace(/\s*✓$/, '')}`
+                return `[ ] ${l}`
+              }).join('\n')
+              await upsertLocalNote({ id: note.id, isList: true, content: rebuilt })
             }
             await onReload()
           }}>{note.isList ? '📝' : '☑'}</button>
