@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchAndCacheNotes, fetchNotesLists } from '../lib/notesApi'
+// import { fetchAndCacheNotes } from '../lib/notesApi'
 import { db } from '../lib/db'
 import { getSession } from '../lib/session'
 import Header from '../components/Header'
@@ -15,6 +15,7 @@ export default function SharedPage() {
   const [collabInput, setCollabInput] = useState<string>('')
   const [confirm, setConfirm] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  // no global date pickers
 
   useEffect(() => {
     reload()
@@ -24,21 +25,12 @@ export default function SharedPage() {
   }, [])
 
   async function reload() {
-    // Server is the source of truth for shared visibility
-    try { await fetchAndCacheNotes() } catch {}
-    const lists = await fetchNotesLists().catch(() => ({ own: [], shared: [] }))
+    // Prefer local cache to avoid hammering API; initial fetch happens elsewhere
     try { const s = await getSession(); setCurrentUserId(s?.userId ?? null) } catch {}
-    // const s = await getSession()
-    // Build shared view from server lists: shared with me + my own notes that are shared
-    const ownShared = (lists.own || []).filter(n => n.isShared && !n.deletedAt)
-    const sharedWithMe = (lists.shared || []).filter(n => !n.deletedAt)
-    const dedup = new Map<string, any>()
-    for (const n of [...ownShared, ...sharedWithMe]) dedup.set(n.id, n)
-    const result = await Promise.all(Array.from(dedup.values()).map(async n => {
-      const local = await db.notes.get(n.id)
-      return { ...n, ownerEmail: n.user?.email, isList: local?.isList ?? false }
-    }))
-    setNotes(result)
+    const s = await getSession()
+    const all = await db.notes.orderBy('updatedAt').reverse().toArray()
+    const filtered = all.filter(n => !n.deletedAt && (n.userId !== s?.userId || n.isShared))
+    setNotes(filtered)
   }
 
   return (
@@ -149,11 +141,20 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
               </div>
             </>
           )}
-          <button onClick={async () => { await upsertLocalNote({ id: note.id, dueAt: null }); await syncNow(); await onReload() }}>Remove date</button>
-          <input type="datetime-local" aria-label="Due date" value={note.dueAt ? new Date(new Date(note.dueAt).getTime() - new Date(note.dueAt).getTimezoneOffset()*60000).toISOString().slice(0,16) : ''} onChange={async (e) => {
-            const v = e.target.value
-            await upsertLocalNote({ id: note.id, dueAt: v ? new Date(v).toISOString() : null }); await syncNow(); await onReload()
-          }} style={{ height: 28 }} />
+          {note.dueAt ? (
+            <>
+              <button onClick={async () => { await upsertLocalNote({ id: note.id, dueAt: null }); await onReload() }}>Remove date</button>
+              <input type="datetime-local" aria-label="Due date" value={note.dueAt ? new Date(new Date(note.dueAt).getTime() - new Date(note.dueAt).getTimezoneOffset()*60000).toISOString().slice(0,16) : ''} onChange={async (e) => {
+                const v = e.target.value
+                await upsertLocalNote({ id: note.id, dueAt: v ? new Date(v).toISOString() : null }); await onReload()
+              }} style={{ height: 28 }} />
+            </>
+          ) : (
+            <input type="datetime-local" aria-label="Due date" onChange={async (e) => {
+              const v = e.target.value
+              await upsertLocalNote({ id: note.id, dueAt: v ? new Date(v).toISOString() : null }); await onReload()
+            }} style={{ height: 28 }} />
+          )}
           <button title={note.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => {
             if (note.isList) {
               // Convert list to plain text with trailing x on checked

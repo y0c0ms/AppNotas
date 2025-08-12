@@ -50,6 +50,7 @@ export default function NotesPage() {
       return { index: idx, checked: false, text: raw }
     })
   }
+  const toPlainTextFromChecklist = (content: string) => parseChecklist(content).map(i => i.checked ? `${i.text} x` : i.text).join('\n')
 
   async function toggleChecklist(noteId: string, content: string, itemIndex: number) {
     const items = parseChecklist(content)
@@ -258,7 +259,15 @@ export default function NotesPage() {
                             await upsertLocalNote({ id: n.id, dueAt: v ? new Date(v).toISOString() : null }); await refresh()
                           }} />
                         </div>
-                        <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
+                        <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => {
+                          if (n.isList) {
+                            const plain = toPlainTextFromChecklist(n.content)
+                            await upsertLocalNote({ id: n.id, isList: false, content: plain })
+                          } else {
+                            await upsertLocalNote({ id: n.id, isList: true })
+                          }
+                          await refresh()
+                        }}>{n.isList ? '📝' : '☑'}</button>
                         <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
                         <label className="share-toggle"><input type="checkbox" checked={shareEditChecked} onChange={e => setShareEditChecked(e.target.checked)} /> Share this note</label>
                         {shareEditChecked && (

@@ -79,6 +79,9 @@ button:active{transform:translateY(0)}
 .note-content{display:flex;justify-content:space-between;align-items:flex-start;width:100%}
 .note-text{flex:1;padding:5px;border-radius:4px;min-height:24px;white-space:pre-wrap;word-break:break-word}
 .note-text textarea.edit-text-input{white-space:pre-wrap}
+/* Larger, aligned checklist checkboxes */
+ul input[type="checkbox"]{width:20px;height:20px}
+ul li{align-items:center}
 .note-text:focus{outline:1px solid var(--primary-color);background-color:rgba(255,255,255,.05)}
 .note-card:hover{transform:translateY(-3px);box-shadow:0 8px 15px rgba(0,0,0,.1);background-color:var(--primary-color-light)}
 .note-actions{display:flex;align-items:center;gap:10px}
