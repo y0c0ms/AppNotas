@@ -76,7 +76,6 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
     const newContent = [...items.filter(i=>!i.checked), ...items.filter(i=>i.checked)]
       .map(i => (i.checked ? `[x] ${i.text}` : `[ ] ${i.text}`)).join('\n')
     await upsertLocalNote({ id: noteId, content: newContent })
-    // throttle sync by letting background sync run; only local reload
     await onReload()
   }
   const toPlainTextFromChecklist = (content: string) => parseChecklist(content).map(i => i.checked ? `${i.text} ✓` : i.text).join('\n')

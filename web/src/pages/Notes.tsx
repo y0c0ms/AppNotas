@@ -26,6 +26,13 @@ export default function NotesPage() {
   const [newColor, setNewColor] = useState<string>('#ffffff')
   const [showNewColorPicker, setShowNewColorPicker] = useState(false)
   const [colorPickerNoteId, setColorPickerNoteId] = useState<string | null>(null)
+  const upsertTimers = useRef<Map<string, any>>(new Map())
+  const debouncedUpsert = (id: string, patch: any, delay = 400) => {
+    const m = upsertTimers.current
+    if (m.has(id)) clearTimeout(m.get(id))
+    const t = setTimeout(async () => { await upsertLocalNote({ id, ...patch }); await refresh() }, delay)
+    m.set(id, t)
+  }
   // expanded editor per-note (share, color, date, list)
   const [shareEditId, setShareEditId] = useState<string | null>(null)
   const [shareEditChecked, setShareEditChecked] = useState(false)
@@ -227,7 +234,7 @@ export default function NotesPage() {
                 <div key={n.id} className="note-card" style={{ backgroundColor: n.color }}>
                   <div className="note-content">
                     <div className="note-text" style={{ width: '100%' }}>
-                      <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
+                      <input className="edit-text-input" value={n.title} onChange={e => { debouncedUpsert(n.id, { title: e.target.value }) }} />
                       <div className="note-actions" style={{ display: 'flex', gap: 8, margin: '6px 0' }}>
                         <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
                         <button className="delete-note" title="Delete" onClick={async () => {
@@ -239,7 +246,7 @@ export default function NotesPage() {
                         <button className="edit-note" title="Edit" onClick={() => { setShareEditId(shareEditId === n.id ? null : n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>✏️</button>
                       </div>
                       {!n.isList && (
-                        <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+                        <textarea className="edit-text-input" value={n.content} onChange={e => { debouncedUpsert(n.id, { content: e.target.value }) }} />
                       )}
                       {n.isList && (
                         <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>

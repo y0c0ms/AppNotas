@@ -8,7 +8,7 @@ export async function queueOp(op: PendingOp) {
 export async function syncNow() {
   const api = getApi()
   const state = (await db.syncState.get('state')) || { id: 'state', clientCursor: 0 }
-  const ops = await db.pendingOps.toArray()
+  const ops = await db.pendingOps.orderBy('updatedAt').toArray()
   try {
     const res = await api.post('sync', { json: { clientCursor: state.clientCursor, ops } }).json<any>()
     const appliedIds = new Set((res.applied as any[]).map((a: any) => a.id))
