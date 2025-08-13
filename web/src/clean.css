@@ -82,11 +82,26 @@ button:active{transform:translateY(0)}
 /* Larger, aligned checklist checkboxes */
 ul input[type="checkbox"]{width:20px;height:20px}
 ul li{align-items:center}
+ul li input[type="text"]{flex:1;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--card-bg);color:var(--text-color)}
 .note-text:focus{outline:1px solid var(--primary-color);background-color:rgba(255,255,255,.05)}
 .note-card:hover{transform:translateY(-3px);box-shadow:0 8px 15px rgba(0,0,0,.1);background-color:var(--primary-color-light)}
 .note-actions{display:flex;align-items:center;gap:10px}
 .delete-note{background:transparent;color:#ef4444;font-size:22px;padding:0;margin:0;height:28px;width:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background-color .2s,transform .2s}
 .delete-note:hover{background-color:rgba(239,68,68,.1);transform:rotate(90deg)}
+.icon-btn{background:transparent;color:var(--text-color);border:1px solid var(--border-color);border-radius:6px;height:28px;min-width:28px;width:28px;display:flex;align-items:center;justify-content:center;transition:background-color .2s,border-color .2s,transform .2s;padding:0}
+.icon-btn:hover{background-color:rgba(0,0,0,.06);transform:translateY(-1px)}
+.pin-btn{border-width:2px;border-color:#4b5563}
+.pin-btn.pinned{border-color:#10b981;background-color:rgba(16,185,129,.12)}
+
+/* Filters and search */
+.filters-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.search-input{flex:1;min-width:200px;padding:8px 10px;border:1px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text-color)}
+.quick-filters{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:6px 10px;border:1px solid var(--border-color);border-radius:999px;background:var(--card-bg);cursor:pointer;color:var(--text-color)}
+.chip.active{background-color:var(--primary-color);border-color:var(--primary-color);color:#fff}
+
+/* Group headers */
+.group-header{font-size:.9rem;margin:6px 0;padding:6px 10px;background-color:var(--primary-color-light);color:var(--text-color);border-radius:6px;display:flex;align-items:center;gap:8px}
 .toggle-add-note{display:flex;align-items:center;padding:10px 15px;background-color:var(--primary-color);color:#fff;border:none;border-radius:8px;cursor:pointer;margin-bottom:10px;transition:background-color .3s}
 .toggle-add-note:hover{background-color:var(--primary-color-dark)}
 .toggle-add-note .plus-icon{font-size:1.2rem;margin-right:8px}
@@ -99,9 +114,9 @@ ul li{align-items:center}
 .share-row input{width:100%}
 .add-note-form .add-btn{position:sticky;bottom:0;align-self:flex-end}
 .add-note-form .add-btn{background:var(--primary-color);color:#fff}
-.color-selector{display:flex;align-items:center;margin-bottom:15px}
+.color-selector{display:flex;align-items:flex-start;margin-bottom:15px;max-height:180px;overflow:auto}
 .color-label{margin-right:10px;font-size:.9rem;color:var(--text-color)}
-.color-options{display:flex;gap:10px}
+.color-options{display:flex;flex-direction:column;gap:10px}
 .color-option{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid var(--border-color);transition:transform .2s,border-color .2s}
 .color-option:hover{transform:scale(1.1)}
 .color-option.selected{border-color:var(--primary-color);transform:scale(1.15);box-shadow:0 0 0 2px var(--primary-color-light)}
@@ -132,10 +147,13 @@ ul li{align-items:center}
 .primary-btn:hover{background-color:var(--secondary-color);transform:translateY(-2px);box-shadow:0 3px 8px rgba(0,0,0,.15)}
 .secondary-btn{background-color:#f87171;color:#fff;padding:10px 15px;border:none;border-radius:6px;cursor:pointer;font-weight:500;transition:all .3s;flex:1}
 .secondary-btn:hover{background-color:#ef4444;transform:translateY(-2px);box-shadow:0 3px 8px rgba(0,0,0,.15)}
-.edit-text-input{width:100%;padding:12px 15px;border-radius:8px;border:1px solid var(--border-color);background:var(--card-bg);color:var(--text-color);box-shadow:0 2px 4px rgba(0,0,0,.05)}
-textarea.edit-text-input{min-height:220px;line-height:1.4}
+.edit-text-input{width:100%;padding:12px 15px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color);box-shadow:0 2px 4px rgba(0,0,0,.05)}
+textarea.edit-text-input{min-height:220px;line-height:1.4;background:transparent}
 .note-popup{position:fixed;top:20px;right:20px;z-index:9999;background:var(--card-bg);color:var(--text-color);border:1px solid var(--border-color);border-radius:10px;box-shadow:var(--shadow);padding:12px 16px;max-width:320px}
 .note-popup .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+ul input[type="checkbox"]{width:20px;height:20px}
+ul li{align-items:center}
+ul li input[type="text"]{flex:1;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;background:transparent;color:var(--text-color)}
 .calendar-checkbox{width:36px;height:36px;min-width:36px;min-height:36px;margin-left:6px;border-radius:50%;background:var(--note-color-default);border:1px solid var(--secondary-color);color:var(--text-color);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s;padding:0}
 .calendar-checkbox:hover{background-color:var(--primary-color);color:#fff;transform:translateY(-2px);box-shadow:0 3px 5px rgba(0,0,0,.2)}
 .calendar-checkbox.has-date{color:var(--primary-color);border-color:var(--primary-color)}

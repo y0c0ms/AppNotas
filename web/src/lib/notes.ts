@@ -36,6 +36,7 @@ export async function upsertLocalNote(partial: Partial<NoteRecord> & { id: strin
     updatedAt: now
   }
   await db.notes.put(rec)
+  // Option B: do not sync per-user preferences like isList and pinned
   const { isList, pinned, ...serverData } = rec as any
   await queueOp({ id: rec.id, type: 'upsert', entity: 'note', updatedAt: rec.updatedAt, data: serverData })
   return rec

@@ -3,17 +3,24 @@ import { useEffect, useRef, useState } from 'react'
 import { db } from '../lib/db'
 import { getSession } from '../lib/session'
 import Header from '../components/Header'
+import LazyList from '../components/LazyList'
 import { continueMarkdownListOnEnter, insertPrefixAtCursor } from '../lib/md'
 import { updateSharing, leaveNote } from '../lib/shareApi'
 import { upsertLocalNote, updateLocalFields } from '../lib/notes'
+import { updateNotePrefs } from '../lib/notesPrefs'
 import { syncNow } from '../lib/sync'
 import '../clean.css'
+import Swipeable from '../components/Swipe'
 
 export default function SharedPage() {
   const [notes, setNotes] = useState<any[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [collabInput, setCollabInput] = useState<string>('')
   const [confirm, setConfirm] = useState<string | null>(null)
+  // filters
+  const [query, setQuery] = useState('')
+  const [ownerFilter, setOwnerFilter] = useState<'all'|'mine'|'others'>('all')
+  const [typeFilter, setTypeFilter] = useState<'all'|'list'|'note'>('all')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   // no global date pickers
 
@@ -37,10 +44,58 @@ export default function SharedPage() {
     <>
       <Header />
       <main>
-        <div className="notes-list" id="sharedNotesList">
-          {notes.map(n => (
-            <SharedCard key={n.id} note={n} editingId={editingId} setEditingId={setEditingId} collabInput={collabInput} setCollabInput={setCollabInput} onReload={reload} setConfirm={setConfirm} currentUserId={currentUserId} />
-          ))}
+        <div className="filters-row">
+          <input className="search-input" placeholder="Search shared notes..." value={query} onChange={e => setQuery(e.target.value)} />
+          <div className="quick-filters">
+            <button className={`chip ${ownerFilter==='all'?'active':''}`} onClick={()=>setOwnerFilter('all')}>All</button>
+            <button className={`chip ${ownerFilter==='mine'?'active':''}`} onClick={()=>setOwnerFilter('mine')}>Mine</button>
+            <button className={`chip ${ownerFilter==='others'?'active':''}`} onClick={()=>setOwnerFilter('others')}>Others</button>
+            <button className={`chip ${typeFilter==='all'?'active':''}`} onClick={()=>setTypeFilter('all')}>All types</button>
+            <button className={`chip ${typeFilter==='note'?'active':''}`} onClick={()=>setTypeFilter('note')}>Notes</button>
+            <button className={`chip ${typeFilter==='list'?'active':''}`} onClick={()=>setTypeFilter('list')}>Lists</button>
+          </div>
+        </div>
+        <div className="group-header">Pinned</div>
+        <div className="notes-list" id="sharedNotesListPinned">
+          <LazyList items={notes
+            .filter(n => n.pinned)
+            .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
+            .filter(n => ownerFilter==='all' ? true : (ownerFilter==='mine' ? n.userId===currentUserId : n.userId!==currentUserId))
+            .filter(n => typeFilter==='all' ? true : (typeFilter==='list' ? n.isList : !n.isList))
+          } renderItem={(n: any) => (
+            <Swipeable onSwipeLeft={async () => {
+              const me = await getSession()
+              if (n.userId === me?.userId) {
+                const now = new Date().toISOString()
+                await upsertLocalNote({ id: n.id, deletedAt: now, updatedAt: now }); await syncNow(); await reload()
+              } else {
+                setConfirm(n.id)
+              }
+            }} onSwipeRight={async () => { await updateLocalFields(n.id, { pinned: !n.pinned }); await updateNotePrefs(n.id, { pinned: !n.pinned }); await reload() }}>
+              <SharedCard key={n.id} note={n} editingId={editingId} setEditingId={setEditingId} collabInput={collabInput} setCollabInput={setCollabInput} onReload={reload} setConfirm={setConfirm} currentUserId={currentUserId} />
+            </Swipeable>
+          )} />
+        </div>
+        <div className="group-header">Others</div>
+        <div className="notes-list" id="sharedNotesListOthers">
+          <LazyList items={notes
+            .filter(n => !n.pinned)
+            .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
+            .filter(n => ownerFilter==='all' ? true : (ownerFilter==='mine' ? n.userId===currentUserId : n.userId!==currentUserId))
+            .filter(n => typeFilter==='all' ? true : (typeFilter==='list' ? n.isList : !n.isList))
+          } renderItem={(n: any) => (
+            <Swipeable onSwipeLeft={async () => {
+              const me = await getSession()
+              if (n.userId === me?.userId) {
+                const now = new Date().toISOString()
+                await upsertLocalNote({ id: n.id, deletedAt: now, updatedAt: now }); await syncNow(); await reload()
+              } else {
+                setConfirm(n.id)
+              }
+            }} onSwipeRight={async () => { await updateLocalFields(n.id, { pinned: !n.pinned }); await updateNotePrefs(n.id, { pinned: !n.pinned }); await reload() }}>
+              <SharedCard key={n.id} note={n} editingId={editingId} setEditingId={setEditingId} collabInput={collabInput} setCollabInput={setCollabInput} onReload={reload} setConfirm={setConfirm} currentUserId={currentUserId} />
+            </Swipeable>
+          )} />
         </div>
         {confirm && (
           <div className="note-popup" role="dialog" aria-modal="true">
@@ -116,19 +171,50 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
                 </>
               ) : (
                 <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
-                  {parseChecklist(note.content).map((it) => (
-                    <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(note.id, note.content, it.index)} />
-                      <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
+                  {parseChecklist(note.content).map((it, idx) => (
+                    <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input type="checkbox" checked={it.checked} onChange={async () => {
+                        const items = parseChecklist(note.content)
+                        items[idx] = { ...items[idx], checked: !items[idx].checked }
+                        const unchecked = items.filter(i=>!i.checked)
+                        const checked = items.filter(i=>i.checked)
+                        const newContent = [...unchecked, ...checked].map(i => (i.checked ? `[x] ${i.text}` : `[ ] ${i.text}`)).join('\n')
+                        await upsertLocalNote({ id: note.id, content: newContent })
+                        await onReload()
+                      }} />
+                      <input type="text" defaultValue={it.text} onChange={async (e) => {
+                        const items = parseChecklist(note.content)
+                        items[idx] = { ...items[idx], text: e.target.value }
+                        const unchecked = items.filter(i=>!i.checked)
+                        const checked = items.filter(i=>i.checked)
+                        const newContent = [...unchecked, ...checked].map(i => (i.checked ? `[x] ${i.text}` : `[ ] ${i.text}`)).join('\n')
+                        await upsertLocalNote({ id: note.id, content: newContent })
+                        await onReload()
+                      }} style={{ textDecoration: it.checked ? 'line-through' : 'none', opacity: it.checked ? 0.7 : 1 }} />
                     </li>
                   ))}
+                  <li style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <input type="checkbox" disabled />
+                    <input type="text" placeholder="Add item" onKeyDown={async (e) => {
+                      if (e.key === 'Enter') {
+                        const val = (e.target as HTMLInputElement).value.trim()
+                        if (!val) return
+                        const items = parseChecklist(note.content)
+                        items.push({ index: items.length, checked: false, text: val })
+                        const newContent = items.map(i => (i.checked ? `[x] ${i.text}` : `[ ] ${i.text}`)).join('\n')
+                        await upsertLocalNote({ id: note.id, content: newContent })
+                        ;(e.target as HTMLInputElement).value = ''
+                        await onReload()
+                      }
+                    }} />
+                  </li>
                 </ul>
               )}
             </>
           )}
         </div>
         <div className="note-actions" style={{ display: 'flex', gap: 8 }}>
-          <button title="Pin" onClick={async () => { await updateLocalFields(note.id, { pinned: !note.pinned }); await onReload() }}>📌</button>
+          <button className={`icon-btn pin-btn ${note.pinned ? 'pinned' : ''}`} aria-pressed={note.pinned} title="Pin" onClick={async () => { await updateLocalFields(note.id, { pinned: !note.pinned }); await updateNotePrefs(note.id, { pinned: !note.pinned }); await onReload() }}>📌</button>
           <button className="edit-note" title="Edit note" onClick={() => setEditingId(isEditing ? null : note.id)}>✏️</button>
           <button className="delete-note" title="Delete or Leave" onClick={async () => {
             const me = await getSession()
@@ -172,7 +258,7 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
           <button title={note.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => {
             if (note.isList) {
               const plain = toPlainTextFromChecklist(note.content)
-              await upsertLocalNote({ id: note.id, isList: false, content: plain })
+              await upsertLocalNote({ id: note.id, isList: false, content: plain }); await updateNotePrefs(note.id, { isList: false })
             } else {
               const lines = (note.content || '').split('\n')
               const rebuilt = lines.map((l: string) => {
@@ -180,7 +266,7 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
                 if (trimmed.endsWith('✓')) return `[x] ${trimmed.replace(/\s*✓$/, '')}`
                 return `[ ] ${l}`
               }).join('\n')
-              await upsertLocalNote({ id: note.id, isList: true, content: rebuilt })
+              await upsertLocalNote({ id: note.id, isList: true, content: rebuilt }); await updateNotePrefs(note.id, { isList: true })
             }
             await onReload()
           }}>{note.isList ? '📝' : '☑'}</button>

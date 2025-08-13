@@ -1,6 +1,6 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -9,19 +9,20 @@ generator client {
 }
 
 model User {
-  id               String         @id @default(uuid())
-  email            String         @unique
-  passwordHash     String
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  e2eeEnabled      Boolean        @default(false)
-  e2eeWrappedKey   String?
-  devices          Device[]
-  notes            Note[]
-  refreshTokens    RefreshToken[]
-  changeState      UserChangeState?
-  changes          Change[]
-  collaborations   NoteCollaborator[]
+  id             String             @id @default(uuid())
+  email          String             @unique
+  passwordHash   String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  e2eeEnabled    Boolean            @default(false)
+  e2eeWrappedKey String?
+  devices        Device[]
+  notes          Note[]
+  refreshTokens  RefreshToken[]
+  changeState    UserChangeState?
+  changes        Change[]
+  collaborations NoteCollaborator[]
+  notePrefs      NoteUserPrefs[]
 }
 
 model Device {
@@ -32,77 +33,97 @@ model Device {
   platform   String
   createdAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
+
   @@index([userId])
 }
 
 model Note {
-  id                     String   @id @default(uuid())
+  id                     String             @id @default(uuid())
   userId                 String
-  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   title                  String
-  content                String   @default("")
-  color                  String   @default("#fff59d")
-  posX                   Int      @default(0)
-  posY                   Int      @default(0)
-  width                  Int      @default(300)
-  height                 Int      @default(200)
-  zIndex                 Int      @default(0)
-  pinned                 Boolean  @default(false)
-  archived               Boolean  @default(false)
+  content                String             @default("")
+  color                  String             @default("#fff59d")
+  posX                   Int                @default(0)
+  posY                   Int                @default(0)
+  width                  Int                @default(300)
+  height                 Int                @default(200)
+  zIndex                 Int                @default(0)
+  pinned                 Boolean            @default(false)
+  archived               Boolean            @default(false)
   dueAt                  DateTime?
   recurrenceRule         String?
   reminderAt             DateTime?
   deletedAt              DateTime?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
   lastModifiedByDeviceId String?
   contentNonce           String?
   contentVersion         Int?
   contentHash            String?
-  isShared               Boolean           @default(false)
+  isShared               Boolean            @default(false)
   collaborators          NoteCollaborator[]
+  prefs                  NoteUserPrefs[]
+
   @@index([userId, updatedAt])
   @@index([userId, deletedAt])
 }
+
 model NoteCollaborator {
   noteId String
   userId String
-  note   Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note   Note   @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([noteId, userId])
   @@index([userId])
 }
+
+model NoteUserPrefs {
+  noteId        String
+  userId        String
+  note          Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pinned        Boolean  @default(false)
+  isList        Boolean  @default(false)
+  colorOverride String?
+  collapsed     Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+
+  @@id([noteId, userId])
+  @@index([userId])
+}
+
 model UserChangeState {
-  userId        String  @id
-  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lastChangeSeq Int     @default(0)
+  userId        String @id
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastChangeSeq Int    @default(0)
 }
 
 model Change {
-  id        BigInt   @id @default(autoincrement())
-  userId    String
-  entity    String
-  entityId  String
-  op        String
-  changedAt DateTime @default(now())
-  deviceId  String?
+  id           BigInt   @id @default(autoincrement())
+  userId       String
+  entity       String
+  entityId     String
+  op           String
+  changedAt    DateTime @default(now())
+  deviceId     String?
   snapshotJson String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, id])
   @@index([userId, entity, entityId])
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   deviceId  String
-  tokenHash String   @unique
-  createdAt DateTime @default(now())
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
   expiresAt DateTime
   revokedAt DateTime?
+
   @@index([userId, deviceId])
 }
-
-

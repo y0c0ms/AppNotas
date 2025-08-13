@@ -7,6 +7,9 @@ import Header from '../components/Header'
 import { syncNow } from '../lib/sync'
 import '../clean.css'
 import { insertPrefixAtCursor, continueMarkdownListOnEnter } from '../lib/md'
+import { updateNotePrefs } from '../lib/notesPrefs'
+import LazyList from '../components/LazyList'
+import Swipeable from '../components/Swipe'
 
 export default function NotesPage() {
   const [notes, setNotes] = useState<any[]>([])
@@ -26,6 +29,9 @@ export default function NotesPage() {
   const [newColor, setNewColor] = useState<string>('#ffffff')
   const [showNewColorPicker, setShowNewColorPicker] = useState(false)
   const [colorPickerNoteId, setColorPickerNoteId] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [filterShared, setFilterShared] = useState<'all'|'mine'|'shared'>('all')
+  const [filterType, setFilterType] = useState<'all'|'list'|'note'>('all')
   const upsertTimers = useRef<Map<string, any>>(new Map())
   const debouncedUpsert = (id: string, patch: any, delay = 400) => {
     const m = upsertTimers.current
@@ -108,6 +114,17 @@ export default function NotesPage() {
       <Header />
 
       <main>
+        <div className="filters-row">
+          <input className="search-input" placeholder="Search notes..." value={query} onChange={e => setQuery(e.target.value)} />
+          <div className="quick-filters">
+            <button className={`chip ${filterShared==='all'?'active':''}`} onClick={()=>setFilterShared('all')}>All</button>
+            <button className={`chip ${filterShared==='mine'?'active':''}`} onClick={()=>setFilterShared('mine')}>Mine</button>
+            <button className={`chip ${filterShared==='shared'?'active':''}`} onClick={()=>setFilterShared('shared')}>Shared</button>
+            <button className={`chip ${filterType==='all'?'active':''}`} onClick={()=>setFilterType('all')}>All types</button>
+            <button className={`chip ${filterType==='note'?'active':''}`} onClick={()=>setFilterType('note')}>Notes</button>
+            <button className={`chip ${filterType==='list'?'active':''}`} onClick={()=>setFilterType('list')}>Lists</button>
+          </div>
+        </div>
         <div className="add-note-container">
           {/* Removed in-page add button; header button controls sheet */}
           {!isMobile && (
@@ -229,15 +246,24 @@ export default function NotesPage() {
         <div className="notes-columns">
           <div className="notes-column">
             <div className="column-header">Notes without dates</div>
+            <div className="group-header">Pinned</div>
             <div className="notes-list">
-              {notes.filter(n => !n.dueAt && !n.isShared).sort((a,b)=> (Number(b.pinned)-Number(a.pinned)) || (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())).map(n => (
-                <div key={n.id} className="note-card" style={{ backgroundColor: n.color }}>
+              <LazyList
+                items={notes.filter(n => !n.dueAt)
+                  .filter(n => filterShared==='all' ? true : (filterShared==='shared' ? n.isShared : !n.isShared))
+                  .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
+                  .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
+                  .filter(n => n.pinned && !n.isShared)
+                  .sort((a,b)=> (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()))}
+                renderItem={(n:any) => (
+                <Swipeable key={n.id} onSwipeLeft={async () => { await deleteLocalNote(n.id); await syncNow(); await refresh(); show('Note moved to trash', 'success') }} onSwipeRight={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
+                <div className="note-card" style={{ backgroundColor: n.color }}>
                   <div className="note-content">
                     <div className="note-text" style={{ width: '100%' }}>
                       <input className="edit-text-input" value={n.title} onChange={e => { debouncedUpsert(n.id, { title: e.target.value }) }} />
                       <div className="note-actions" style={{ display: 'flex', gap: 8, margin: '6px 0' }}>
-                        <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
-                        <button className="delete-note" title="Delete" onClick={async () => {
+                        <button className={`icon-btn pin-btn ${n.pinned ? 'pinned' : ''}`} aria-pressed={n.pinned} title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await updateNotePrefs(n.id, { pinned: !n.pinned }); await refresh() }}>📌</button>
+                        <button className="icon-btn delete-note" title="Delete" onClick={async () => {
                           await deleteLocalNote(n.id)
                           await syncNow()
                           await refresh()
@@ -270,7 +296,7 @@ export default function NotesPage() {
                         <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => {
                           if (n.isList) {
                             const plain = toPlainTextFromChecklist(n.content)
-                            await upsertLocalNote({ id: n.id, isList: false, content: plain })
+                            await upsertLocalNote({ id: n.id, isList: false, content: plain }); await updateNotePrefs(n.id, { isList: false })
                           } else {
                             // convert back to checklist: any line that ends with ✓ becomes checked
                             const lines = (n.content || '').split('\n')
@@ -279,7 +305,7 @@ export default function NotesPage() {
                               if (trimmed.endsWith('✓')) return `[x] ${trimmed.replace(/\s*✓$/, '')}`
                               return `[ ] ${l}`
                             }).join('\n')
-                            await upsertLocalNote({ id: n.id, isList: true, content: rebuilt })
+                            await upsertLocalNote({ id: n.id, isList: true, content: rebuilt }); await updateNotePrefs(n.id, { isList: true })
                           }
                           await refresh()
                         }}>{n.isList ? '📝' : '☑'}</button>
@@ -307,20 +333,122 @@ export default function NotesPage() {
                     )}
                   </div>
                 </div>
-              ))}
+                </Swipeable>
+                )}
+              />
+            </div>
+            <div className="group-header">Others</div>
+            <div className="notes-list">
+              <LazyList
+                items={notes.filter(n => !n.dueAt)
+                  .filter(n => filterShared==='all' ? true : (filterShared==='shared' ? n.isShared : !n.isShared))
+                  .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
+                  .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
+                  .filter(n => !n.pinned && !n.isShared)
+                  .sort((a,b)=> (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()))}
+                renderItem={(n:any) => (
+                  <Swipeable key={n.id} onSwipeLeft={async () => { await deleteLocalNote(n.id); await syncNow(); await refresh(); show('Note moved to trash', 'success') }} onSwipeRight={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
+                  <div className="note-card" style={{ backgroundColor: n.color }}>
+                    <div className="note-content">
+                      <div className="note-text" style={{ width: '100%' }}>
+                        <input className="edit-text-input" value={n.title} onChange={e => { debouncedUpsert(n.id, { title: e.target.value }) }} />
+                        <div className="note-actions" style={{ display: 'flex', gap: 8, margin: '6px 0' }}>
+                          <button className={`icon-btn pin-btn ${n.pinned ? 'pinned' : ''}`} aria-pressed={n.pinned} title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await updateNotePrefs(n.id, { pinned: !n.pinned }); await refresh() }}>📌</button>
+                          <button className="icon-btn delete-note" title="Delete" onClick={async () => {
+                            await deleteLocalNote(n.id)
+                            await syncNow()
+                            await refresh()
+                            show('Note moved to trash', 'success')
+                          }}>🗑</button>
+                          <button className="icon-btn edit-note" title="Edit" onClick={() => { setShareEditId(shareEditId === n.id ? null : n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>✏️</button>
+                        </div>
+                        {!n.isList && (
+                          <textarea className="edit-text-input" value={n.content} onChange={e => { debouncedUpsert(n.id, { content: e.target.value }) }} />
+                        )}
+                        {n.isList && (
+                          <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
+                            {parseChecklist(n.content).map((it) => (
+                              <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(n.id, n.content, it.index)} />
+                                <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                      {shareEditId === n.id && (
+                        <div className="note-edit-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+                          <div>
+                            <input type="datetime-local" aria-label="Due date" onChange={async (e) => {
+                              const v = e.target.value
+                              await upsertLocalNote({ id: n.id, dueAt: v ? new Date(v).toISOString() : null }); await refresh()
+                            }} />
+                          </div>
+                          <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => {
+                            if (n.isList) {
+                              const plain = toPlainTextFromChecklist(n.content)
+                              await upsertLocalNote({ id: n.id, isList: false, content: plain })
+                            } else {
+                              // convert back to checklist: any line that ends with ✓ becomes checked
+                              const lines = (n.content || '').split('\n')
+                              const rebuilt = lines.map((l: string) => {
+                                const trimmed = l.trimEnd()
+                                if (trimmed.endsWith('✓')) return `[x] ${trimmed.replace(/\s*✓$/, '')}`
+                                return `[ ] ${l}`
+                              }).join('\n')
+                              await upsertLocalNote({ id: n.id, isList: true, content: rebuilt })
+                            }
+                            await refresh()
+                          }}>{n.isList ? '📝' : '☑'}</button>
+                         <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
+                          <label className="share-toggle"><input type="checkbox" checked={shareEditChecked} onChange={e => setShareEditChecked(e.target.checked)} /> Share this note</label>
+                          {shareEditChecked && (
+                            <div className="share-row"><input placeholder="Collaborator emails, comma separated" value={shareEditEmails} onChange={e => setShareEditEmails(e.target.value)} /></div>
+                          )}
+                          <button className="primary-btn" onClick={async () => {
+                            const emails = shareEditEmails.split(',').map(s => s.trim()).filter(Boolean)
+                            try { await updateSharing(n.id, { isShared: shareEditChecked, addCollaborators: emails }); show('Updated', 'success') } catch { show('Update failed', 'error') }
+                            finally { setShareEditId(null); await refresh() }
+                          }}>Save</button>
+                          <button className="secondary-btn" onClick={() => setShareEditId(null)}>Close</button>
+                        </div>
+                      )}
+                      {colorPickerNoteId === n.id && (
+                        <div className="color-selector" style={{ marginTop: 6 }}>
+                          <div className="color-options">
+                            {getColorPresets().map(c => (
+                              <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: n.id, color: c }); setColorPickerNoteId(null); await refresh() }} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  </Swipeable>
+                )}
+              />
             </div>
           </div>
           <div className="notes-column">
             <div className="column-header">Notes with dates</div>
+            <div className="group-header">Pinned</div>
             <div className="notes-list">
-              {notes.filter(n => !!n.dueAt && !n.isShared).sort((a,b)=> (Number(b.pinned)-Number(a.pinned)) || (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())).map(n => (
-                <div key={n.id} className="note-card" style={{ backgroundColor: n.color }}>
+              <LazyList
+                items={notes.filter(n => !!n.dueAt)
+                  .filter(n => filterShared==='all' ? true : (filterShared==='shared' ? n.isShared : !n.isShared))
+                  .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
+                  .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
+                  .filter(n => n.pinned && !n.isShared)
+                  .sort((a,b)=> (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()))}
+                renderItem={(n:any) => (
+                <Swipeable key={n.id} onSwipeLeft={async () => { await deleteLocalNote(n.id); await syncNow(); await refresh(); show('Note moved to trash', 'success') }} onSwipeRight={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
+                <div className="note-card" style={{ backgroundColor: n.color }}>
                   <div className="note-content">
                     <div className="note-text" style={{ width: '100%' }}>
                       <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
                       <div className="note-actions" style={{ display: 'flex', gap: 8, margin: '6px 0' }}>
-                        <button title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>📌</button>
-                        <button className="delete-note" title="Delete" onClick={async () => {
+                        <button className={`icon-btn pin-btn ${n.pinned ? 'pinned' : ''}`} aria-pressed={n.pinned} title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await updateNotePrefs(n.id, { pinned: !n.pinned }); await refresh() }}>📌</button>
+                        <button className="icon-btn delete-note" title="Delete" onClick={async () => {
                           await deleteLocalNote(n.id)
                           await syncNow()
                           await refresh()
@@ -349,8 +477,8 @@ export default function NotesPage() {
                           const v = e.target.value
                           await upsertLocalNote({ id: n.id, dueAt: v ? new Date(v).toISOString() : null }); await refresh()
                         }} />
-                        <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
-                        <button title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
+                        <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await updateNotePrefs(n.id, { isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
+                         <button className="icon-btn" title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
                         <label className="share-toggle"><input type="checkbox" checked={shareEditChecked} onChange={e => setShareEditChecked(e.target.checked)} /> Share this note</label>
                         {shareEditChecked && (
                           <div className="share-row"><input placeholder="Collaborator emails, comma separated" value={shareEditEmails} onChange={e => setShareEditEmails(e.target.value)} /></div>
@@ -379,7 +507,59 @@ export default function NotesPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                </Swipeable>
+                )}
+              />
+            </div>
+            <div className="group-header">Others</div>
+            <div className="notes-list">
+              <LazyList
+                items={notes.filter(n => !!n.dueAt)
+                  .filter(n => filterShared==='all' ? true : (filterShared==='shared' ? n.isShared : !n.isShared))
+                  .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
+                  .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
+                  .filter(n => !n.pinned && !n.isShared)
+                  .sort((a,b)=> (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()))}
+                renderItem={(n:any) => (
+                <Swipeable key={n.id} onSwipeLeft={async () => { await deleteLocalNote(n.id); await syncNow(); await refresh(); show('Note moved to trash', 'success') }} onSwipeRight={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
+                <div className="note-card" style={{ backgroundColor: n.color }}>
+                  <div className="note-content">
+                    <div className="note-text" style={{ width: '100%' }}>
+                      <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
+                      <div className="note-actions" style={{ display: 'flex', gap: 8, margin: '6px 0' }}>
+                        <button className={`icon-btn pin-btn ${n.pinned ? 'pinned' : ''}`} aria-pressed={n.pinned} title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await updateNotePrefs(n.id, { pinned: !n.pinned }); await refresh() }}>📌</button>
+                        <button className="delete-note" title="Delete" onClick={async () => {
+                          await deleteLocalNote(n.id)
+                          await syncNow()
+                          await refresh()
+                          show('Note moved to trash', 'success')
+                        }}>🗑</button>
+                        <button className="edit-note" title="Edit" onClick={() => { setShareEditId(shareEditId === n.id ? null : n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>✏️</button>
+                      </div>
+                      {!n.isList && (
+                        <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
+                      )}
+                      {n.isList && (
+                        <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
+                          {parseChecklist(n.content).map((it) => (
+                            <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(n.id, n.content, it.index)} />
+                              <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                  <div className="note-meta">
+                    <div className="note-meta-date">
+                      {formatDateTime(n.dueAt as string)}
+                    </div>
+                  </div>
+                </div>
+                </Swipeable>
+                )}
+              />
             </div>
           </div>
         </div>

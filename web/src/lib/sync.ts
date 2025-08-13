@@ -19,6 +19,7 @@ export async function syncNow() {
       if (ch.entity !== 'note') continue
       const n = ch.note
       const existing = await db.notes.get(n.id)
+      const prefs = ch.prefs as { pinned?: boolean; isList?: boolean; colorOverride?: string | null } | undefined
       await db.notes.put({
         id: n.id,
         userId: n.userId,
@@ -30,15 +31,16 @@ export async function syncNow() {
         width: n.width,
         height: n.height,
         zIndex: n.zIndex,
-        pinned: n.pinned,
+        pinned: typeof prefs?.pinned === 'boolean' ? prefs.pinned : n.pinned,
         archived: n.archived,
         dueAt: n.dueAt ? new Date(n.dueAt).toISOString() : null,
         recurrenceRule: n.recurrenceRule ?? null,
         reminderAt: n.reminderAt ? new Date(n.reminderAt).toISOString() : null,
         deletedAt: n.deletedAt ? new Date(n.deletedAt).toISOString() : null,
         isShared: n.isShared,
-        // keep local-only flags
-        isList: existing?.isList ?? false,
+        // keep local-only flags, unless server returned a user pref
+        isList: typeof prefs?.isList === 'boolean' ? prefs.isList : (existing?.isList ?? false),
+        color: prefs?.colorOverride || n.color,
         updatedAt: new Date(n.updatedAt).toISOString()
       })
     }

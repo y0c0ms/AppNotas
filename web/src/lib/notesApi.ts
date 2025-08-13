@@ -22,6 +22,7 @@ type ServerNote = {
   updatedAt: string
   isShared: boolean
   user?: { email: string }
+  prefs?: { pinned?: boolean; isList?: boolean; colorOverride?: string | null; collapsed?: boolean }
 }
 
 function mapServerNote(n: ServerNote): NoteRecord {
@@ -37,7 +38,7 @@ function mapServerNote(n: ServerNote): NoteRecord {
     width: n.width,
     height: n.height,
     zIndex: n.zIndex,
-    pinned: n.pinned,
+    pinned: typeof n.prefs?.pinned === 'boolean' ? n.prefs.pinned : n.pinned,
     archived: n.archived,
     dueAt: n.dueAt ?? null,
     recurrenceRule: n.recurrenceRule ?? null,
@@ -65,7 +66,7 @@ export async function fetchAndCacheNotes() {
       const mapped = mapServerNote(n)
       // Tag owner email if we know it
       const existing = await db.notes.get(mapped.id)
-      await db.notes.put({ ...mapped, isList: existing?.isList ?? false, ownerEmail: mapped.userId === s?.userId ? (s?.email || mapped.ownerEmail) : mapped.ownerEmail })
+       await db.notes.put({ ...mapped, isList: typeof n.prefs?.isList === 'boolean' ? n.prefs.isList : (existing?.isList ?? false), ownerEmail: mapped.userId === s?.userId ? (s?.email || mapped.ownerEmail) : mapped.ownerEmail, color: n.prefs?.colorOverride || mapped.color })
     }
   })
   lastFetchMs = Date.now()
