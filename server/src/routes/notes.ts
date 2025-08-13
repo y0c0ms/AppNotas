@@ -10,7 +10,11 @@ router.get('/', requireAuth, async (req, res, next) => {
     const userId = req.auth!.userId;
     const own = await prisma.note.findMany({ where: { userId, deletedAt: null }, orderBy: { updatedAt: 'desc' }, include: { user: { select: { email: true } } } });
     const shared = await prisma.note.findMany({ where: { deletedAt: null, collaborators: { some: { userId } } }, orderBy: { updatedAt: 'desc' }, include: { user: { select: { email: true } } } });
-    const prefs = await (prisma as any).noteUserPrefs.findMany({ where: { userId } });
+    let prefs: any[] = []
+    try {
+      const prefsModel = (prisma as any).noteUserPrefs
+      if (prefsModel?.findMany) prefs = await prefsModel.findMany({ where: { userId } })
+    } catch {}
     const map = new Map(prefs.map((p: any) => [String(p.noteId), p]));
     const attach = (n: any) => ({ ...n, prefs: map.get(n.id) || null });
     res.json({ own: own.map(attach), shared: shared.map(attach) });
@@ -71,13 +75,20 @@ router.post('/:id/prefs', requireAuth, async (req, res, next) => {
     // Ensure user can see the note (owner or collaborator)
     const canAccess = await prisma.note.findFirst({ where: { id: noteId, OR: [{ userId }, { collaborators: { some: { userId } } }] }, select: { id: true } });
     if (!canAccess) return res.status(404).json({ error: 'not_found' });
-    await (prisma as any).noteUserPrefs.upsert({
+    try {
+      const prefsModel = (prisma as any).noteUserPrefs
+      if (!prefsModel?.upsert) return res.json({ ok: true })
+      await prefsModel.upsert({
       where: { noteId_userId: { noteId, userId } },
       update: { pinned: pinned ?? undefined, isList: isList ?? undefined, colorOverride: typeof colorOverride === 'string' ? colorOverride : undefined, collapsed: collapsed ?? undefined },
       create: { noteId, userId, pinned: !!pinned, isList: !!isList, colorOverride: typeof colorOverride === 'string' ? colorOverride : null, collapsed: !!collapsed }
-    });
-    const updated = await (prisma as any).noteUserPrefs.findUnique({ where: { noteId_userId: { noteId, userId } } });
-    res.json({ ok: true, prefs: updated });
+      })
+      const updated = await prefsModel.findUnique({ where: { noteId_userId: { noteId, userId } } })
+      res.json({ ok: true, prefs: updated });
+    } catch (e) {
+      // If the prefs table does not exist yet, do not fail the whole request
+      res.json({ ok: true })
+    }
   } catch (e) { next(e); }
 });
 

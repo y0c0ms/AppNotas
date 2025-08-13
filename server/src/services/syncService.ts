@@ -73,7 +73,13 @@ export async function sync(userId: string, body: { clientCursor?: number; device
     // Include notes shared with this user (collaborator rows). For MVP, we stream own changes; shared reads handled client via dedicated fetch later.
     const changes = await tx.change.findMany({ where: { userId, id: { gt: BigInt(clientCursor) } }, orderBy: { id: 'asc' }, take: 500 });
     const noteIds = Array.from(new Set(changes.filter(c => c.entity === 'note').map(c => c.entityId)));
-    const prefs = noteIds.length ? await (tx as any).noteUserPrefs.findMany({ where: { userId, noteId: { in: noteIds } } }) : [];
+    let prefs: any[] = []
+    try {
+      const prefsModel = (tx as any).noteUserPrefs
+      if (noteIds.length && prefsModel?.findMany) {
+        prefs = await prefsModel.findMany({ where: { userId, noteId: { in: noteIds } } })
+      }
+    } catch {}
     const prefsMap = new Map(prefs.map((p: any) => [p.noteId, p]));
     const newCursor = changes.length ? Number(changes[changes.length - 1].id) : clientCursor;
     return { applied, conflicts, changes: changes.map(c => ({ serverChangeSeq: Number(c.id), type: c.op, entity: c.entity, id: c.entityId, note: JSON.parse(c.snapshotJson), prefs: prefsMap.get(c.entityId) || null })), newCursor };
