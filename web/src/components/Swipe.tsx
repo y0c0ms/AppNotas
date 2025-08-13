@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
+import type { ReactNode } from 'react'
 
 type SwipeableProps = {
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
   threshold?: number
-  children: React.ReactNode
+  children: ReactNode
 }
 
 export default function Swipeable({ onSwipeLeft, onSwipeRight, threshold = 60, children }: SwipeableProps) {

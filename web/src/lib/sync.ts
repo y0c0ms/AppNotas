@@ -25,7 +25,6 @@ export async function syncNow() {
         userId: n.userId,
         title: n.title,
         content: n.content,
-        color: n.color,
         posX: n.posX,
         posY: n.posY,
         width: n.width,
