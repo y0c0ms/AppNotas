@@ -9,6 +9,11 @@ router.get('/', requireAuth, async (req, res, next) => {
   try {
     const userId = req.auth!.userId;
     const own = await prisma.note.findMany({ where: { userId, deletedAt: null }, orderBy: { updatedAt: 'desc' }, include: { user: { select: { email: true } } } });
+    // Sanity: any rows that match userId but still have deletedAt set?
+    try {
+      const zombies = await prisma.note.findMany({ where: { userId, NOT: { deletedAt: null } }, select: { id: true, deletedAt: true } })
+      if (zombies.length) console.warn('[NOTES:ZOMBIES]', zombies)
+    } catch {}
     const shared = await prisma.note.findMany({ where: { deletedAt: null, collaborators: { some: { userId } } }, orderBy: { updatedAt: 'desc' }, include: { user: { select: { email: true } } } });
     let prefs: any[] = []
     try {

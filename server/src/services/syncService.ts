@@ -30,9 +30,10 @@ export async function sync(userId: string, body: { clientCursor?: number; device
         // Only owner can delete
         if (ownerNote) {
           const updated = await tx.note.update({ where: { id: ownerNote.id }, data: { deletedAt: new Date(op.updatedAt), lastModifiedByDeviceId: deviceId } });
+          const row = await tx.note.findUnique({ where: { id: updated.id }, select: { id: true, deletedAt: true, updatedAt: true } })
           const change = await tx.change.create({ data: { userId, entity: 'note', entityId: updated.id, op: 'delete', deviceId: deviceId || null, snapshotJson: JSON.stringify(updated) } });
           applied.push({ id: updated.id, serverChangeSeq: Number(change.id), updatedAt: updated.updatedAt.toISOString() });
-          try { console.log('[SYNC:DELETE:APPLIED]', { id: updated.id }) } catch {}
+          try { console.log('[SYNC:DELETE:APPLIED]', { id: updated.id, deletedAt: row?.deletedAt, updatedAt: row?.updatedAt }) } catch {}
         }
         else { try { console.warn('[SYNC:DELETE:SKIP_NOT_OWNER]', { id: op.id, userId }) } catch {} }
         continue;
