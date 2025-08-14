@@ -17,6 +17,7 @@ router.get('/', requireAuth, async (req, res, next) => {
     } catch {}
     const map = new Map(prefs.map((p: any) => [String(p.noteId), p]));
     const attach = (n: any) => ({ ...n, prefs: map.get(n.id) || null });
+    console.log('[NOTES] user', userId, 'own:', own.length, 'shared:', shared.length, 'prefs:', prefs.length)
     res.json({ own: own.map(attach), shared: shared.map(attach) });
   } catch (e) { next(e); }
 });
@@ -27,6 +28,7 @@ router.post('/:id/share', requireAuth, async (req, res, next) => {
     const userId = req.auth!.userId;
     const noteId = req.params.id;
     const { isShared, addCollaborators = [], removeCollaborators = [] } = req.body || {};
+    console.log('[SHARE]', { userId, noteId, isShared, addCount: addCollaborators.length, removeCount: removeCollaborators.length })
     // Try owner first
     const note = await prisma.note.findFirst({ where: { id: noteId, userId } });
     // If not owner, allow self-removal (collaborator leave via this endpoint)

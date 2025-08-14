@@ -19,6 +19,12 @@ export async function syncNow() {
       if (ch.entity !== 'note') continue
       const n = ch.note
       const existing = await db.notes.get(n.id)
+      // Do not overwrite newer local changes (e.g., recent delete not yet applied server-side)
+      try {
+        if (existing?.updatedAt && new Date(existing.updatedAt).getTime() > new Date(n.updatedAt).getTime()) {
+          continue
+        }
+      } catch {}
       const prefs = ch.prefs as { pinned?: boolean; isList?: boolean; colorOverride?: string | null } | undefined
       await db.notes.put({
         id: n.id,
@@ -47,7 +53,8 @@ export async function syncNow() {
     // After applying server changes, broadcast to listeners; debounce handled by fetch layer
     window.dispatchEvent(new Event('notes:fetched'))
   } catch (e) {
-    // swallow; show UI toast in caller if needed
+    // Ensure pending ops are retained on error; surface an event for optional UI
+    try { window.dispatchEvent(new Event('sync:error')) } catch {}
   }
 }
 
