@@ -26,6 +26,7 @@ export default function Header() {
       await syncNow()
       // Also refresh lists so shared notes are up-to-date for collaborators
       await fetchAndCacheNotes().catch(() => {})
+      try { window.dispatchEvent(new Event('notes:fetched')) } catch {}
     } finally {
       setSyncing(false)
     }

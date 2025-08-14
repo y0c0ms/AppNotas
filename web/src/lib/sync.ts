@@ -19,9 +19,11 @@ export async function syncNow() {
       if (ch.entity !== 'note') continue
       const n = ch.note
       const existing = await db.notes.get(n.id)
-      // Do not overwrite newer local changes (e.g., recent delete not yet applied server-side)
+      // Conflict policy: allow server-side deletes to always win; otherwise prefer newer local
       try {
-        if (existing?.updatedAt && new Date(existing.updatedAt).getTime() > new Date(n.updatedAt).getTime()) {
+        const localNewer = existing?.updatedAt && new Date(existing.updatedAt).getTime() > new Date(n.updatedAt).getTime()
+        const serverIsDelete = !!n.deletedAt
+        if (localNewer && !serverIsDelete) {
           continue
         }
       } catch {}
