@@ -247,7 +247,7 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
           )}
           {note.dueAt ? (
             <>
-              <button onClick={async () => { await upsertLocalNote({ id: note.id, dueAt: null }); await onReload() }}>Remove date</button>
+              <button onClick={async () => { await upsertLocalNote({ id: note.id, dueAt: null }); await syncNow(); await onReload() }}>Remove date</button>
               <input type="datetime-local" aria-label="Due date" value={note.dueAt ? new Date(new Date(note.dueAt).getTime() - new Date(note.dueAt).getTimezoneOffset()*60000).toISOString().slice(0,16) : ''} onChange={async (e) => {
                 const v = e.target.value
                 await upsertLocalNote({ id: note.id, dueAt: v ? new Date(v).toISOString() : null }); await onReload()
@@ -276,11 +276,13 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
           }}>{note.isList ? '📝' : '☑'}</button>
           <button title="Color" onClick={() => setShowColors(v => !v)} style={{ width: 28, height: 28, borderRadius: 16, background: note.color, border: '1px solid var(--border-color)' }} />
           {showColors && (
-            <div className="color-selector" style={{ marginTop: 6 }}>
-              <div className="color-options">
-                {colorPresets.map(c => (
-                  <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: note.id, color: c }); setShowColors(false); await onReload() }} />
-                ))}
+            <div style={{ width: '100%' }}>
+              <div className="color-selector" style={{ marginTop: 6 }}>
+                <div className="color-options">
+                  {colorPresets.map(c => (
+                    <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: note.id, color: c }); await updateNotePrefs(note.id, { colorOverride: c }); setShowColors(false); await onReload() }} />
+                  ))}
+                </div>
               </div>
             </div>
           )}

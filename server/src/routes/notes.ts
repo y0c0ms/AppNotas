@@ -34,6 +34,15 @@ router.get('/', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Dangerous cleanup: permanently delete old soft-deleted notes for this user
+router.post('/cleanup/deleted', requireAuth, async (req, res, next) => {
+  try {
+    const userId = req.auth!.userId
+    const result = await prisma.note.deleteMany({ where: { userId, NOT: { deletedAt: null } } })
+    res.json({ ok: true, deleted: result.count })
+  } catch (e) { next(e) }
+})
+
 // Toggle sharing and manage collaborators
 router.post('/:id/share', requireAuth, async (req, res, next) => {
   try {
@@ -58,6 +67,8 @@ router.post('/:id/share', requireAuth, async (req, res, next) => {
     if (typeof isShared === 'boolean') {
       await prisma.note.update({ where: { id: noteId }, data: { isShared } });
     }
+    // Always round-trip current collaborators so UI stays in sync
+    const collabs = await prisma.noteCollaborator.findMany({ where: { noteId }, select: { userId: true } })
     if (Array.isArray(addCollaborators) && addCollaborators.length) {
       const users = await prisma.user.findMany({ where: { email: { in: addCollaborators } }, select: { id: true } });
       await prisma.noteCollaborator.createMany({ data: users.map(u => ({ noteId, userId: u.id })), skipDuplicates: true });
@@ -66,7 +77,7 @@ router.post('/:id/share', requireAuth, async (req, res, next) => {
       const users = await prisma.user.findMany({ where: { email: { in: removeCollaborators } }, select: { id: true } });
       await prisma.noteCollaborator.deleteMany({ where: { noteId, userId: { in: users.map(u => u.id) } } });
     }
-    res.json({ ok: true });
+    res.json({ ok: true, collaborators: collabs.map(c => c.userId) });
   } catch (e) { next(e); }
 });
 

@@ -422,11 +422,13 @@ export default function NotesPage() {
                         </div>
                       )}
                       {colorPickerNoteId === n.id && (
-                        <div className="color-selector" style={{ marginTop: 6 }}>
-                          <div className="color-options">
-                            {getColorPresets().map(c => (
-                              <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: n.id, color: c }); setColorPickerNoteId(null); await refresh() }} />
-                            ))}
+                        <div style={{ width: '100%' }}>
+                          <div className="color-selector" style={{ marginTop: 6 }}>
+                            <div className="color-options">
+                              {getColorPresets().map(c => (
+                                <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: n.id, color: c }); setColorPickerNoteId(null); await refresh() }} />
+                              ))}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -480,7 +482,7 @@ export default function NotesPage() {
                     </div>
                     {shareEditId === n.id && (
                       <div className="note-edit-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
-                        <button onClick={async () => { await upsertLocalNote({ id: n.id, dueAt: null }); await refresh() }}>Remove date</button>
+                        <button onClick={async () => { await upsertLocalNote({ id: n.id, dueAt: null }); await syncNow(); await refresh() }}>Remove date</button>
                         <input type="datetime-local" aria-label="Due date" value={n.dueAt ? new Date(new Date(n.dueAt).getTime() - new Date(n.dueAt).getTimezoneOffset()*60000).toISOString().slice(0,16) : ''} onChange={async (e) => {
                           const v = e.target.value
                           await upsertLocalNote({ id: n.id, dueAt: v ? new Date(v).toISOString() : null }); await refresh()
