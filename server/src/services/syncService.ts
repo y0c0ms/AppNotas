@@ -41,8 +41,17 @@ export async function sync(userId: string, body: { clientCursor?: number; device
       if (!accessibleNote) {
         // Create only allowed for owner
         if (!ownerNote) {
-          // Create new note for owner
-          const created = await tx.note.create({ data: { userId, id: op.id, title: op.data?.title || '', content: op.data?.content || '', color: op.data?.color || '#fff59d', posX: op.data?.position?.x || 0, posY: op.data?.position?.y || 0, width: op.data?.size?.w || 300, height: op.data?.size?.h || 200, zIndex: op.data?.zIndex || 0, pinned: !!op.data?.pinned, archived: !!op.data?.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : null, recurrenceRule: op.data?.recurrenceRule || null, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : null, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : null, lastModifiedByDeviceId: deviceId || null, isShared: !!op.data?.isShared } });
+          // Create new note for owner, but if id already exists (race), upsert
+          let created
+          try {
+            created = await tx.note.create({ data: { userId, id: op.id, title: op.data?.title || '', content: op.data?.content || '', color: op.data?.color || '#fff59d', posX: op.data?.position?.x || 0, posY: op.data?.position?.y || 0, width: op.data?.size?.w || 300, height: op.data?.size?.h || 200, zIndex: op.data?.zIndex || 0, pinned: !!op.data?.pinned, archived: !!op.data?.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : null, recurrenceRule: op.data?.recurrenceRule || null, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : null, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : null, lastModifiedByDeviceId: deviceId || null, isShared: !!op.data?.isShared } })
+          } catch (e: any) {
+            if (e?.code === 'P2002') {
+              created = await tx.note.update({ where: { id: op.id }, data: { title: op.data?.title || '', content: op.data?.content || '', color: op.data?.color || '#fff59d', posX: op.data?.position?.x || 0, posY: op.data?.position?.y || 0, width: op.data?.size?.w || 300, height: op.data?.size?.h || 200, zIndex: op.data?.zIndex || 0, pinned: !!op.data?.pinned, archived: !!op.data?.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : null, recurrenceRule: op.data?.recurrenceRule || null, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : null, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : null, lastModifiedByDeviceId: deviceId || null, isShared: !!op.data?.isShared } })
+            } else {
+              throw e
+            }
+          }
           if (Array.isArray(op.data?.collaborators) && op.data.collaborators.length > 0) {
             const users = await tx.user.findMany({ where: { email: { in: op.data.collaborators as string[] } }, select: { id: true } });
             if (users.length) {

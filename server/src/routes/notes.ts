@@ -98,6 +98,16 @@ router.post('/:id/prefs', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Debug: fetch raw note and collaborators by id
+router.get('/debug/note/:id', requireAuth, async (req, res, next) => {
+  try {
+    const id = req.params.id
+    const note = await prisma.note.findUnique({ where: { id }, select: { id: true, userId: true, title: true, deletedAt: true, updatedAt: true, isShared: true } })
+    const collabs = await prisma.noteCollaborator.findMany({ where: { noteId: id }, select: { userId: true } })
+    res.json({ note, collabs })
+  } catch (e) { next(e) }
+})
+
 export default router;
 
 
