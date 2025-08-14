@@ -19,6 +19,7 @@ export async function sync(userId: string, body: { clientCursor?: number; device
     const conflicts: any[] = [];
 
     for (const op of ops) {
+      try { console.log('[SYNC:OP]', { userId, type: op.type, id: op.id, hasData: !!op.data }) } catch {}
       if (op.entity !== 'note') continue;
       // Owner note (for delete and create)
       const ownerNote = await tx.note.findFirst({ where: { userId, id: op.id } });
@@ -31,7 +32,9 @@ export async function sync(userId: string, body: { clientCursor?: number; device
           const updated = await tx.note.update({ where: { id: ownerNote.id }, data: { deletedAt: new Date(op.updatedAt), lastModifiedByDeviceId: deviceId } });
           const change = await tx.change.create({ data: { userId, entity: 'note', entityId: updated.id, op: 'delete', deviceId: deviceId || null, snapshotJson: JSON.stringify(updated) } });
           applied.push({ id: updated.id, serverChangeSeq: Number(change.id), updatedAt: updated.updatedAt.toISOString() });
+          try { console.log('[SYNC:DELETE:APPLIED]', { id: updated.id }) } catch {}
         }
+        else { try { console.warn('[SYNC:DELETE:SKIP_NOT_OWNER]', { id: op.id, userId }) } catch {} }
         continue;
       }
       // upsert
@@ -48,6 +51,7 @@ export async function sync(userId: string, body: { clientCursor?: number; device
           }
           const change = await tx.change.create({ data: { userId, entity: 'note', entityId: created.id, op: 'upsert', deviceId: deviceId || null, snapshotJson: JSON.stringify(created) } });
           applied.push({ id: created.id, serverChangeSeq: Number(change.id), updatedAt: created.updatedAt.toISOString() });
+          try { console.log('[SYNC:CREATE]', { id: created.id }) } catch {}
         }
         continue;
       }
@@ -56,6 +60,7 @@ export async function sync(userId: string, body: { clientCursor?: number; device
       const serverUpdated = new Date(accessibleNote.updatedAt).getTime();
       if (incomingUpdated <= serverUpdated) {
         conflicts.push({ id: accessibleNote.id, serverVersion: serverUpdated, note: accessibleNote });
+        try { console.warn('[SYNC:UPDATE:SKIP_OLDER]', { id: accessibleNote.id, incomingUpdated, serverUpdated }) } catch {}
       } else {
         const updated = await tx.note.update({ where: { id: accessibleNote.id }, data: { title: op.data?.title ?? accessibleNote.title, content: op.data?.content ?? accessibleNote.content, color: op.data?.color ?? accessibleNote.color, posX: op.data?.position?.x ?? accessibleNote.posX, posY: op.data?.position?.y ?? accessibleNote.posY, width: op.data?.size?.w ?? accessibleNote.width, height: op.data?.size?.h ?? accessibleNote.height, zIndex: op.data?.zIndex ?? accessibleNote.zIndex, pinned: op.data?.pinned ?? accessibleNote.pinned, archived: op.data?.archived ?? accessibleNote.archived, dueAt: op.data?.dueAt ? new Date(op.data.dueAt) : accessibleNote.dueAt, recurrenceRule: op.data?.recurrenceRule ?? accessibleNote.recurrenceRule, reminderAt: op.data?.reminderAt ? new Date(op.data.reminderAt) : accessibleNote.reminderAt, deletedAt: op.data?.deletedAt ? new Date(op.data.deletedAt) : accessibleNote.deletedAt, lastModifiedByDeviceId: deviceId || accessibleNote.lastModifiedByDeviceId, isShared: op.data?.isShared ?? accessibleNote.isShared } });
         if (Array.isArray(op.data?.collaborators) && op.data.collaborators.length > 0) {
@@ -67,6 +72,7 @@ export async function sync(userId: string, body: { clientCursor?: number; device
         // Record change under owner's userId so owner stream sees it
         const change = await tx.change.create({ data: { userId: accessibleNote.userId, entity: 'note', entityId: updated.id, op: 'upsert', deviceId: deviceId || null, snapshotJson: JSON.stringify(updated) } });
         applied.push({ id: updated.id, serverChangeSeq: Number(change.id), updatedAt: updated.updatedAt.toISOString() });
+        try { console.log('[SYNC:UPDATE:APPLIED]', { id: updated.id }) } catch {}
       }
     }
 
