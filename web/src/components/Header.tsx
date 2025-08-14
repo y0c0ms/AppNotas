@@ -1,5 +1,6 @@
 import { logout } from '../lib/auth'
 import { syncNow } from '../lib/sync'
+import { fetchAndCacheNotes } from '../lib/notesApi'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import '../clean.css'
@@ -23,6 +24,8 @@ export default function Header() {
     try {
       setSyncing(true)
       await syncNow()
+      // Also refresh lists so shared notes are up-to-date for collaborators
+      await fetchAndCacheNotes().catch(() => {})
     } finally {
       setSyncing(false)
     }
