@@ -2,6 +2,11 @@ import { db, type NoteRecord } from './db'
 import { getSession } from './session'
 import { queueOp } from './sync'
 
+let includePinnedInServerOps = false
+export function setPinnedSyncFallback(enabled: boolean) {
+  includePinnedInServerOps = enabled
+}
+
 export async function listLocalNotes(): Promise<NoteRecord[]> {
   const session = await getSession()
   const all = await db.notes.orderBy('updatedAt').reverse().toArray()
@@ -38,7 +43,10 @@ export async function upsertLocalNote(partial: Partial<NoteRecord> & { id: strin
   await db.notes.put(rec)
   // Option B: do not sync per-user preferences like isList and pinned
   const { isList, pinned, ...serverData } = rec as any
-  await queueOp({ id: rec.id, type: 'upsert', entity: 'note', updatedAt: rec.updatedAt, data: serverData })
+  const data: any = serverData
+  // If server does not support per-user prefs yet, fall back to syncing pinned on the note
+  if (includePinnedInServerOps && typeof pinned === 'boolean') data.pinned = pinned
+  await queueOp({ id: rec.id, type: 'upsert', entity: 'note', updatedAt: rec.updatedAt, data })
   return rec
 }
 

@@ -16,7 +16,7 @@ export function useToast() {
     if (!msg) return null
     const bg = kind === 'success' ? '#166534' : kind === 'error' ? '#7f1d1d' : '#1f2937'
     return (
-      <div style={{ position: 'fixed', bottom: 16, left: 16, background: bg, color: '#fff', padding: '8px 12px', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,.4)' }}>{msg}</div>
+      <div aria-live="polite" style={{ position: 'fixed', bottom: 16, left: 16, background: bg, color: '#fff', padding: '8px 12px', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,.4)' }}>{msg}</div>
     )
   }
   return { show, Toast }

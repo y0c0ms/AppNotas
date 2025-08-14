@@ -10,6 +10,7 @@ import { insertPrefixAtCursor, continueMarkdownListOnEnter } from '../lib/md'
 import { updateNotePrefs } from '../lib/notesPrefs'
 import LazyList from '../components/LazyList'
 import Swipeable from '../components/Swipe'
+import Collapsible from '../components/Collapsible'
 
 export default function NotesPage() {
   const [notes, setNotes] = useState<any[]>([])
@@ -115,7 +116,7 @@ export default function NotesPage() {
 
       <main>
         <div className="filters-row">
-          <input className="search-input" placeholder="Search notes..." value={query} onChange={e => setQuery(e.target.value)} />
+          <input className="search-input" placeholder="Search notes..." value={query} onChange={e => setQuery(e.target.value)} onInput={(e) => { const v=(e.target as HTMLInputElement).value; clearTimeout((window as any).__q); (window as any).__q=setTimeout(()=>setQuery(v), 250) }} />
           <div className="quick-filters">
             <button className={`chip ${filterShared==='all'?'active':''}`} onClick={()=>setFilterShared('all')}>All</button>
             <button className={`chip ${filterShared==='mine'?'active':''}`} onClick={()=>setFilterShared('mine')}>Mine</button>
@@ -123,6 +124,9 @@ export default function NotesPage() {
             <button className={`chip ${filterType==='all'?'active':''}`} onClick={()=>setFilterType('all')}>All types</button>
             <button className={`chip ${filterType==='note'?'active':''}`} onClick={()=>setFilterType('note')}>Notes</button>
             <button className={`chip ${filterType==='list'?'active':''}`} onClick={()=>setFilterType('list')}>Lists</button>
+            {(filterShared!=='all'||filterType!=='all'||query) && (
+              <button className="chip clear-chip" onClick={()=>{ setQuery(''); setFilterShared('all'); setFilterType('all') }}>Clear</button>
+            )}
           </div>
         </div>
         <div className="add-note-container">
@@ -350,8 +354,14 @@ export default function NotesPage() {
                   <Swipeable key={n.id} onSwipeLeft={async () => { await deleteLocalNote(n.id); await syncNow(); await refresh(); show('Note moved to trash', 'success') }} onSwipeRight={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
                   <div className="note-card" style={{ backgroundColor: n.color }}>
                     <div className="note-content">
+                      <div className="note-title">
+                        <span title={n.title}>{n.title || 'Untitled'}</span>
+                        {n.pinned && <span className="badge pinned">Pinned</span>}
+                      </div>
                       <div className="note-text" style={{ width: '100%' }}>
-                        <input className="edit-text-input" value={n.title} onChange={e => { debouncedUpsert(n.id, { title: e.target.value }) }} />
+                        {!n.isList ? (
+                          <Collapsible text={n.content} />
+                        ) : null}
                         <div className="note-actions" style={{ display: 'flex', gap: 8, margin: '6px 0' }}>
                           <button className={`icon-btn pin-btn ${n.pinned ? 'pinned' : ''}`} aria-pressed={n.pinned} title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await updateNotePrefs(n.id, { pinned: !n.pinned }); await refresh() }}>📌</button>
                           <button className="icon-btn delete-note" title="Delete" onClick={async () => {
@@ -362,9 +372,7 @@ export default function NotesPage() {
                           }}>🗑</button>
                           <button className="icon-btn edit-note" title="Edit" onClick={() => { setShareEditId(shareEditId === n.id ? null : n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>✏️</button>
                         </div>
-                        {!n.isList && (
-                          <textarea className="edit-text-input" value={n.content} onChange={e => { debouncedUpsert(n.id, { content: e.target.value }) }} />
-                        )}
+                      {!n.isList && null}
                         {n.isList && (
                           <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
                             {parseChecklist(n.content).map((it) => (

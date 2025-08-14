@@ -11,6 +11,7 @@ import { updateNotePrefs } from '../lib/notesPrefs'
 import { syncNow } from '../lib/sync'
 import '../clean.css'
 import Swipeable from '../components/Swipe'
+import Collapsible from '../components/Collapsible'
 
 export default function SharedPage() {
   const [notes, setNotes] = useState<any[]>([])
@@ -45,7 +46,7 @@ export default function SharedPage() {
       <Header />
       <main>
         <div className="filters-row">
-          <input className="search-input" placeholder="Search shared notes..." value={query} onChange={e => setQuery(e.target.value)} />
+          <input className="search-input" placeholder="Search shared notes..." value={query} onChange={e => setQuery(e.target.value)} onInput={(e)=>{ const v=(e.target as HTMLInputElement).value; clearTimeout((window as any).__qs); (window as any).__qs=setTimeout(()=>setQuery(v),250) }} />
           <div className="quick-filters">
             <button className={`chip ${ownerFilter==='all'?'active':''}`} onClick={()=>setOwnerFilter('all')}>All</button>
             <button className={`chip ${ownerFilter==='mine'?'active':''}`} onClick={()=>setOwnerFilter('mine')}>Mine</button>
@@ -53,6 +54,9 @@ export default function SharedPage() {
             <button className={`chip ${typeFilter==='all'?'active':''}`} onClick={()=>setTypeFilter('all')}>All types</button>
             <button className={`chip ${typeFilter==='note'?'active':''}`} onClick={()=>setTypeFilter('note')}>Notes</button>
             <button className={`chip ${typeFilter==='list'?'active':''}`} onClick={()=>setTypeFilter('list')}>Lists</button>
+            {(ownerFilter!=='all'||typeFilter!=='all'||query) && (
+              <button className="chip clear-chip" onClick={()=>{ setQuery(''); setOwnerFilter('all'); setTypeFilter('all') }}>Clear</button>
+            )}
           </div>
         </div>
         <div className="group-header">Pinned</div>
@@ -141,9 +145,9 @@ function SharedCard({ note, editingId, setEditingId, collabInput, setCollabInput
           {!isEditing ? (
             <div>
               <div style={{ fontWeight: 600 }}>{note.title}</div>
-              {!note.isList ? (
-                <div style={{ whiteSpace: 'pre-wrap' }}>{note.content}</div>
-              ) : (
+           {!note.isList ? (
+              <Collapsible text={note.content} />
+            ) : (
                 <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
                   {parseChecklist(note.content).map((it) => (
                     <li key={it.index} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>

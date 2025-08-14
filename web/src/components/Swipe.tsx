@@ -21,10 +21,13 @@ export default function Swipeable({ onSwipeLeft, onSwipeRight, threshold = 60, c
       if (startX.current == null) return
       deltaX.current = e.touches[0].clientX - startX.current
       el.style.transform = `translateX(${deltaX.current}px)`
+      el.classList.toggle('swipe-right', deltaX.current > 10)
+      el.classList.toggle('swipe-left', deltaX.current < -10)
     }
     const onTouchEnd = () => {
       const dx = deltaX.current
       el.style.transform = ''
+      el.classList.remove('swipe-right', 'swipe-left')
       startX.current = null
       deltaX.current = 0
       if (dx <= -threshold && onSwipeLeft) onSwipeLeft()

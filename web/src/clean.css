@@ -102,6 +102,27 @@ ul li input[type="text"]{flex:1;padding:8px 10px;border:1px solid var(--border-c
 
 /* Group headers */
 .group-header{font-size:.9rem;margin:6px 0;padding:6px 10px;background-color:var(--primary-color-light);color:var(--text-color);border-radius:6px;display:flex;align-items:center;gap:8px}
+
+/* Card header and badges */
+.note-card .note-title{font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{font-size:.72rem;padding:2px 6px;border-radius:999px;border:1px solid var(--border-color);background:var(--card-bg)}
+.badge.pinned{border-color:#10b981;color:#10b981}
+
+/* Readability */
+.note-content .edit-text-input, .note-content textarea.edit-text-input{line-height:1.55}
+.note-text{max-width:64ch}
+
+/* Swipe feedback */
+.swipe-right{background:linear-gradient(90deg, rgba(16,185,129,.12), transparent)}
+.swipe-left{background:linear-gradient(270deg, rgba(239,68,68,.12), transparent)}
+
+/* Filters UX */
+.chip:focus-visible, .icon-btn:focus-visible{outline:2px solid var(--primary-color); outline-offset:2px}
+.filters-row .clear-chip{margin-left:4px}
+
+/* Skeleton */
+.skeleton{background:linear-gradient(90deg,#2a2a2a 25%,#3a3a3a 37%,#2a2a2a 63%);background-size:400% 100%;animation:skeleton 1.4s ease infinite;border-radius:8px}
+@keyframes skeleton{0%{background-position:100% 50%}100%{background-position:0 50%}}
 .toggle-add-note{display:flex;align-items:center;padding:10px 15px;background-color:var(--primary-color);color:#fff;border:none;border-radius:8px;cursor:pointer;margin-bottom:10px;transition:background-color .3s}
 .toggle-add-note:hover{background-color:var(--primary-color-dark)}
 .toggle-add-note .plus-icon{font-size:1.2rem;margin-right:8px}

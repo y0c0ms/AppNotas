@@ -1,5 +1,6 @@
 import { getApi } from './auth'
 import { db, type NoteRecord } from './db'
+import { setPinnedSyncFallback } from './notes'
 import { getSession } from './session'
 
 type ServerNote = {
@@ -59,6 +60,9 @@ export async function fetchAndCacheNotes() {
   if (now - lastFetchMs < FETCH_COOLDOWN_MS) return 0
   inflight = (async () => {
   const { own, shared } = await fetchNotesLists()
+  // Enable fallback to syncing pinned on the note if server does not send prefs
+  const prefsPresent = Array.isArray(own) && own.some((n:any)=> 'prefs' in n) || Array.isArray(shared) && shared.some((n:any)=> 'prefs' in n)
+  setPinnedSyncFallback(!prefsPresent)
   const all = [...(own || []), ...(shared || [])]
   const s = await getSession()
   await db.transaction('rw', db.notes, async () => {
