@@ -22,12 +22,15 @@ router.get('/', requireAuth, async (req, res, next) => {
     } catch {}
     const map = new Map(prefs.map((p: any) => [String(p.noteId), p]));
     const attach = (n: any) => ({ ...n, prefs: map.get(n.id) || null });
+    // Defensive: ensure we never return deleted rows (in case of inconsistent index)
+    const ownClean = own.filter((n: any) => !n.deletedAt)
+    const sharedClean = shared.filter((n: any) => !n.deletedAt)
     try {
-      const ownIds = own.map(n => n.id)
-      const sharedIds = shared.map(n => n.id)
+      const ownIds = ownClean.map(n => n.id)
+      const sharedIds = sharedClean.map(n => n.id)
       console.log('[NOTES] user', userId, 'own:', own.length, 'shared:', shared.length, 'prefs:', prefs.length, 'ownIds:', ownIds, 'sharedIds:', sharedIds)
     } catch {}
-    res.json({ own: own.map(attach), shared: shared.map(attach) });
+    res.json({ own: ownClean.map(attach), shared: sharedClean.map(attach) });
   } catch (e) { next(e); }
 });
 

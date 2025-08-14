@@ -70,7 +70,10 @@ export async function fetchAndCacheNotes() {
       const mapped = mapServerNote(n)
       // Tag owner email if we know it
       const existing = await db.notes.get(mapped.id)
-       await db.notes.put({ ...mapped, isList: typeof n.prefs?.isList === 'boolean' ? n.prefs.isList : (existing?.isList ?? false), ownerEmail: mapped.userId === s?.userId ? (s?.email || mapped.ownerEmail) : mapped.ownerEmail, color: n.prefs?.colorOverride || mapped.color })
+      // Guard against stale reads: ignore server rows older than our local record
+      const incomingNewer = !existing || (new Date(mapped.updatedAt).getTime() >= new Date(existing.updatedAt).getTime())
+      if (!incomingNewer) continue
+      await db.notes.put({ ...mapped, isList: typeof n.prefs?.isList === 'boolean' ? n.prefs.isList : (existing?.isList ?? false), ownerEmail: mapped.userId === s?.userId ? (s?.email || mapped.ownerEmail) : mapped.ownerEmail, color: n.prefs?.colorOverride || mapped.color })
     }
   })
   lastFetchMs = Date.now()
