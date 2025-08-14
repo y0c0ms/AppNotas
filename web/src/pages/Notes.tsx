@@ -31,7 +31,7 @@ export default function NotesPage() {
   const [showNewColorPicker, setShowNewColorPicker] = useState(false)
   const [colorPickerNoteId, setColorPickerNoteId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const [filterShared, setFilterShared] = useState<'all'|'mine'|'shared'>('all')
+  // Removed shared filter from Notes tab (kept on Shared tab)
   const [filterType, setFilterType] = useState<'all'|'list'|'note'>('all')
   const upsertTimers = useRef<Map<string, any>>(new Map())
   const debouncedUpsert = (id: string, patch: any, delay = 400) => {
@@ -118,14 +118,11 @@ export default function NotesPage() {
         <div className="filters-row">
           <input className="search-input" placeholder="Search notes..." value={query} onChange={e => setQuery(e.target.value)} onInput={(e) => { const v=(e.target as HTMLInputElement).value; clearTimeout((window as any).__q); (window as any).__q=setTimeout(()=>setQuery(v), 250) }} />
           <div className="quick-filters">
-            <button className={`chip ${filterShared==='all'?'active':''}`} onClick={()=>setFilterShared('all')}>All</button>
-            <button className={`chip ${filterShared==='mine'?'active':''}`} onClick={()=>setFilterShared('mine')}>Mine</button>
-            <button className={`chip ${filterShared==='shared'?'active':''}`} onClick={()=>setFilterShared('shared')}>Shared</button>
             <button className={`chip ${filterType==='all'?'active':''}`} onClick={()=>setFilterType('all')}>All types</button>
             <button className={`chip ${filterType==='note'?'active':''}`} onClick={()=>setFilterType('note')}>Notes</button>
             <button className={`chip ${filterType==='list'?'active':''}`} onClick={()=>setFilterType('list')}>Lists</button>
-            {(filterShared!=='all'||filterType!=='all'||query) && (
-              <button className="chip clear-chip" onClick={()=>{ setQuery(''); setFilterShared('all'); setFilterType('all') }}>Clear</button>
+            {(filterType!=='all'||query) && (
+              <button className="chip clear-chip" onClick={()=>{ setQuery(''); setFilterType('all') }}>Clear</button>
             )}
           </div>
         </div>
@@ -254,7 +251,6 @@ export default function NotesPage() {
             <div className="notes-list">
               <LazyList
                 items={notes.filter(n => !n.dueAt)
-                  .filter(n => filterShared==='all' ? true : (filterShared==='shared' ? n.isShared : !n.isShared))
                   .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
                   .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
                   .filter(n => n.pinned && !n.isShared)
@@ -345,7 +341,6 @@ export default function NotesPage() {
             <div className="notes-list">
               <LazyList
                 items={notes.filter(n => !n.dueAt)
-                  .filter(n => filterShared==='all' ? true : (filterShared==='shared' ? n.isShared : !n.isShared))
                   .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
                   .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
                   .filter(n => !n.pinned && !n.isShared)
@@ -445,7 +440,6 @@ export default function NotesPage() {
             <div className="notes-list">
               <LazyList
                 items={notes.filter(n => !!n.dueAt)
-                  .filter(n => filterShared==='all' ? true : (filterShared==='shared' ? n.isShared : !n.isShared))
                   .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
                   .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
                   .filter(n => n.pinned && !n.isShared)
@@ -525,7 +519,6 @@ export default function NotesPage() {
             <div className="notes-list">
               <LazyList
                 items={notes.filter(n => !!n.dueAt)
-                  .filter(n => filterShared==='all' ? true : (filterShared==='shared' ? n.isShared : !n.isShared))
                   .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
                   .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
                   .filter(n => !n.pinned && !n.isShared)

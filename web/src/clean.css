@@ -112,7 +112,7 @@ ul li input[type="text"]{flex:1;padding:8px 10px;border:1px solid var(--border-c
 .note-content .edit-text-input, .note-content textarea.edit-text-input{line-height:1.55}
 .note-text{max-width:64ch}
 /* Increase overall text size */
-.note-card, .note-content, .note-text, .edit-text-input, textarea.edit-text-input{font-size:calc(1rem + 4px)}
+.note-card, .note-content, .note-text, .edit-text-input, textarea.edit-text-input{font-size:calc(1rem + 5px)}
 
 /* Swipe feedback */
 .swipe-right{background:linear-gradient(90deg, rgba(16,185,129,.12), transparent)}
@@ -139,7 +139,8 @@ ul li input[type="text"]{flex:1;padding:8px 10px;border:1px solid var(--border-c
 .add-note-form .add-btn{background:var(--primary-color);color:#fff}
 .color-selector{display:flex;align-items:flex-start;margin-bottom:15px;max-height:180px;overflow:auto}
 .color-label{margin-right:10px;font-size:.9rem;color:var(--text-color)}
-.color-options{display:flex;flex-direction:column;gap:10px}
+.color-options{display:flex;flex-wrap:wrap;gap:10px}
+.color-selector .color-option{flex:0 0 28px}
 .color-option{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid var(--border-color);transition:transform .2s,border-color .2s}
 .color-option:hover{transform:scale(1.1)}
 .color-option.selected{border-color:var(--primary-color);transform:scale(1.15);box-shadow:0 0 0 2px var(--primary-color-light)}
