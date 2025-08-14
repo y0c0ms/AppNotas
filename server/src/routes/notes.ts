@@ -17,7 +17,11 @@ router.get('/', requireAuth, async (req, res, next) => {
     } catch {}
     const map = new Map(prefs.map((p: any) => [String(p.noteId), p]));
     const attach = (n: any) => ({ ...n, prefs: map.get(n.id) || null });
-    console.log('[NOTES] user', userId, 'own:', own.length, 'shared:', shared.length, 'prefs:', prefs.length)
+    try {
+      const ownIds = own.map(n => n.id)
+      const sharedIds = shared.map(n => n.id)
+      console.log('[NOTES] user', userId, 'own:', own.length, 'shared:', shared.length, 'prefs:', prefs.length, 'ownIds:', ownIds, 'sharedIds:', sharedIds)
+    } catch {}
     res.json({ own: own.map(attach), shared: shared.map(attach) });
   } catch (e) { next(e); }
 });
