@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { register as registerUser } from '../lib/auth'
 import { useNavigate } from 'react-router-dom'
-import '../clean.css'
+import '../styles/core.css'
+import '../styles/header.css'
+import '../styles/auth.css'
+import '../styles/components.css'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')

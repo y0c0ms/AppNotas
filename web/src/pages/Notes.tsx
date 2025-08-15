@@ -5,7 +5,10 @@ import { updateSharing } from '../lib/shareApi'
 import { useToast } from '../components/Toast'
 import Header from '../components/Header'
 import { syncNow } from '../lib/sync'
-import '../clean.css'
+import '../styles/core.css'
+import '../styles/header.css'
+import '../styles/notes.css'
+import '../styles/components.css'
 import { insertPrefixAtCursor, continueMarkdownListOnEnter } from '../lib/md'
 import { updateNotePrefs } from '../lib/notesPrefs'
 import LazyList from '../components/LazyList'
@@ -120,8 +123,8 @@ export default function NotesPage() {
           <input className="search-input" placeholder="Search notes..." value={query} onChange={e => setQuery(e.target.value)} onInput={(e) => { const v=(e.target as HTMLInputElement).value; clearTimeout((window as any).__q); (window as any).__q=setTimeout(()=>setQuery(v), 250) }} />
           <div className="quick-filters">
             <button className={`chip ${dateFilter==='all'?'active':''}`} onClick={()=>setDateFilter('all')}>All</button>
-            <button className={`chip ${dateFilter==='date'?'active':''}`} onClick={()=>setDateFilter('date')}>Mine</button>
-            <button className={`chip ${dateFilter==='noDate'?'active':''}`} onClick={()=>setDateFilter('noDate')}>Shared</button>
+            <button className={`chip ${dateFilter==='date'?'active':''}`} onClick={()=>setDateFilter('date')}>Date</button>
+            <button className={`chip ${dateFilter==='noDate'?'active':''}`} onClick={()=>setDateFilter('noDate')}>No date</button>
             <button className={`chip ${filterType==='all'?'active':''}`} onClick={()=>setFilterType('all')}>All types</button>
             <button className={`chip ${filterType==='note'?'active':''}`} onClick={()=>setFilterType('note')}>Notes</button>
             <button className={`chip ${filterType==='list'?'active':''}`} onClick={()=>setFilterType('list')}>Lists</button>
@@ -250,11 +253,12 @@ export default function NotesPage() {
 
         <div className="notes-columns">
           <div className="notes-column">
-            <div className="column-header">Notes without dates</div>
+            <div className="column-header">{dateFilter==='date' ? 'Date Notes' : dateFilter==='noDate' ? 'No Date' : 'All Notes'}</div>
             <div className="group-header">Pinned</div>
             <div className="notes-list">
               <LazyList
-                items={notes.filter(n => !n.dueAt)
+                items={notes
+                  .filter(n => dateFilter==='all' ? true : (dateFilter==='date' ? !!n.dueAt : !n.dueAt))
                   .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
                   .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
                   .filter(n => n.pinned && !n.isShared)
@@ -344,7 +348,8 @@ export default function NotesPage() {
             <div className="group-header">Others</div>
             <div className="notes-list">
               <LazyList
-                items={notes.filter(n => !n.dueAt)
+                items={notes
+                  .filter(n => dateFilter==='all' ? true : (dateFilter==='date' ? !!n.dueAt : !n.dueAt))
                   .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
                   .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
                   .filter(n => !n.pinned && !n.isShared)
@@ -438,151 +443,11 @@ export default function NotesPage() {
               />
             </div>
           </div>
-          <div className="notes-column">
-            <div className="column-header">Notes with dates</div>
-            <div className="group-header">Pinned</div>
-            <div className="notes-list">
-              <LazyList
-                items={notes.filter(n => !!n.dueAt)
-                  .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
-                  .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
-                  .filter(n => n.pinned && !n.isShared)
-                  .sort((a,b)=> (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()))}
-                renderItem={(n:any) => (
-                <Swipeable key={n.id} onSwipeLeft={async () => { await deleteLocalNote(n.id); await syncNow(); await refresh(); show('Note moved to trash', 'success') }} onSwipeRight={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
-                <div className="note-card" style={{ backgroundColor: n.color }}>
-                  <div className="note-content">
-                    <div className="note-text" style={{ width: '100%' }}>
-                      <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
-                      <div className="note-actions" style={{ display: 'flex', gap: 8, margin: '6px 0' }}>
-                        <button className={`icon-btn pin-btn ${n.pinned ? 'pinned' : ''}`} aria-pressed={n.pinned} title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await updateNotePrefs(n.id, { pinned: !n.pinned }); await refresh() }}>📌</button>
-                        <button className="icon-btn delete-note" title="Delete" onClick={async () => {
-                          await deleteLocalNote(n.id)
-                          await syncNow()
-                          await refresh()
-                          show('Note moved to trash', 'success')
-                        }}>🗑</button>
-                        <button className="edit-note" title="Edit" onClick={() => { setShareEditId(shareEditId === n.id ? null : n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>✏️</button>
-                      </div>
-                      {!n.isList && (
-                        <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
-                      )}
-                      {n.isList && (
-                        <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
-                          {parseChecklist(n.content).map((it) => (
-                            <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(n.id, n.content, it.index)} />
-                              <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                    {shareEditId === n.id && (
-                      <div className="note-edit-controls" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
-                        <button onClick={async () => { await upsertLocalNote({ id: n.id, dueAt: null }); await syncNow(); await refresh() }}>Remove date</button>
-                        <input type="datetime-local" aria-label="Due date" value={n.dueAt ? new Date(new Date(n.dueAt).getTime() - new Date(n.dueAt).getTimezoneOffset()*60000).toISOString().slice(0,16) : ''} onChange={async (e) => {
-                          const v = e.target.value
-                          await upsertLocalNote({ id: n.id, dueAt: v ? new Date(v).toISOString() : null }); await refresh()
-                        }} />
-                        <button title={n.isList ? 'Switch to Note' : 'Switch to List'} onClick={async () => { await upsertLocalNote({ id: n.id, isList: !n.isList }); await updateNotePrefs(n.id, { isList: !n.isList }); await refresh() }}>{n.isList ? '📝' : '☑'}</button>
-                         <button className="icon-btn" title="Color" onClick={() => setColorPickerNoteId(p => p === n.id ? null : n.id)} style={{ width: 28, height: 28, borderRadius: 16, background: n.color, border: '1px solid var(--border-color)' }} />
-                        <label className="share-toggle"><input type="checkbox" checked={shareEditChecked} onChange={e => setShareEditChecked(e.target.checked)} /> Share this note</label>
-                        {shareEditChecked && (
-                          <div className="share-row"><input placeholder="Collaborator emails, comma separated" value={shareEditEmails} onChange={e => setShareEditEmails(e.target.value)} /></div>
-                        )}
-                        <button className="primary-btn" onClick={async () => {
-                          const emails = shareEditEmails.split(',').map(s => s.trim()).filter(Boolean)
-                          try { await updateSharing(n.id, { isShared: shareEditChecked, addCollaborators: emails }); show('Updated', 'success') } catch { show('Update failed', 'error') }
-                          finally { setShareEditId(null); await refresh() }
-                        }}>Save</button>
-                        <button className="secondary-btn" onClick={() => setShareEditId(null)}>Close</button>
-                      </div>
-                    )}
-                    {colorPickerNoteId === n.id && (
-                      <div className="color-selector" style={{ marginTop: 6 }}>
-                        <div className="color-options">
-                          {getColorPresets().map(c => (
-                            <button key={c} className="color-option" style={{ background: c }} onClick={async () => { await upsertLocalNote({ id: n.id, color: c }); setColorPickerNoteId(null); await refresh() }} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="note-meta">
-                    <div className="note-meta-date">
-                      {formatDateTime(n.dueAt as string)}
-                    </div>
-                  </div>
-                </div>
-                </Swipeable>
-                )}
-              />
-            </div>
-            <div className="group-header">Others</div>
-            <div className="notes-list">
-              <LazyList
-                items={notes.filter(n => !!n.dueAt)
-                  .filter(n => filterType==='all' ? true : (filterType==='list' ? n.isList : !n.isList))
-                  .filter(n => (n.title+n.content).toLowerCase().includes(query.toLowerCase()))
-                  .filter(n => !n.pinned && !n.isShared)
-                  .sort((a,b)=> (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()))}
-                renderItem={(n:any) => (
-                <Swipeable key={n.id} onSwipeLeft={async () => { await deleteLocalNote(n.id); await syncNow(); await refresh(); show('Note moved to trash', 'success') }} onSwipeRight={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await refresh() }}>
-                <div className="note-card" style={{ backgroundColor: n.color }}>
-                  <div className="note-content">
-                    <div className="note-text" style={{ width: '100%' }}>
-                      <input className="edit-text-input" value={n.title} onChange={async e => { await upsertLocalNote({ id: n.id, title: e.target.value }); await refresh() }} />
-                      <div className="note-actions" style={{ display: 'flex', gap: 8, margin: '6px 0' }}>
-                        <button className={`icon-btn pin-btn ${n.pinned ? 'pinned' : ''}`} aria-pressed={n.pinned} title="Pin" onClick={async () => { await upsertLocalNote({ id: n.id, pinned: !n.pinned }); await updateNotePrefs(n.id, { pinned: !n.pinned }); await refresh() }}>📌</button>
-                        <button className="delete-note" title="Delete" onClick={async () => {
-                          await deleteLocalNote(n.id)
-                          await syncNow()
-                          await refresh()
-                          show('Note moved to trash', 'success')
-                        }}>🗑</button>
-                        <button className="edit-note" title="Edit" onClick={() => { setShareEditId(shareEditId === n.id ? null : n.id); setShareEditChecked(!!n.isShared); setShareEditEmails('') }}>✏️</button>
-                      </div>
-                      {!n.isList && (
-                        <textarea className="edit-text-input" value={n.content} onChange={async e => { await upsertLocalNote({ id: n.id, content: e.target.value }); await refresh() }} />
-                      )}
-                      {n.isList && (
-                        <ul style={{ listStyle: 'none', padding: 0, marginTop: 6 }}>
-                          {parseChecklist(n.content).map((it) => (
-                            <li key={it.index} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <input type="checkbox" checked={it.checked} onChange={() => toggleChecklist(n.id, n.content, it.index)} />
-                              <span style={{ textDecoration: it.checked ? 'line-through' as const : 'none', opacity: it.checked ? 0.7 : 1 }}>{it.text}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                  <div className="note-meta">
-                    <div className="note-meta-date">
-                      {formatDateTime(n.dueAt as string)}
-                    </div>
-                  </div>
-                </div>
-                </Swipeable>
-                )}
-              />
-            </div>
-          </div>
         </div>
       </main>
       <Toast />
     </div>
   )
-}
-
-function formatDateTime(iso: string) {
-  try {
-    const d = new Date(iso)
-    const date = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).format(d)
-    const time = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(d)
-    return `${date}  ${time}`
-  } catch { return iso }
 }
 
 

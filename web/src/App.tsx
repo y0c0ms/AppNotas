@@ -8,7 +8,12 @@ import RegisterPage from './pages/Register'
 import { useEffect, useState } from 'react'
 import { isAuthenticated } from './lib/session'
 import { syncNow } from './lib/sync'
-import './clean.css'
+import './styles/core.css'
+import './styles/header.css'
+import './styles/notes.css'
+import './styles/calendar.css'
+import './styles/auth.css'
+import './styles/components.css'
 
 function App() {
   const [authed, setAuthed] = useState<boolean | null>(null)
@@ -20,13 +25,22 @@ function App() {
       setAuthed(false)
       const modal = document.createElement('div')
       modal.className = 'note-popup'
-      modal.innerHTML = `<div style="margin-bottom:8px">Your session expired. Please log in again.</div><div class="actions"><button id="reloginBtn" class="primary-btn">Log in</button></div>`
+      modal.setAttribute('role','dialog')
+      modal.setAttribute('aria-modal','true')
+      modal.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+          <div>Your session expired. Please log in again.</div>
+          <button id="closeExpire" class="icon-btn" aria-label="Close">✕</button>
+        </div>
+        <div class="actions"><button id="reloginBtn" class="primary-btn">Log in</button></div>`
       document.body.appendChild(modal)
       const btn = modal.querySelector('#reloginBtn') as HTMLButtonElement
+      const close = modal.querySelector('#closeExpire') as HTMLButtonElement
       btn?.addEventListener('click', () => {
         try { window.location.hash = '#/login' } catch {}
         setTimeout(() => modal.remove(), 0)
       })
+      close?.addEventListener('click', () => modal.remove())
     }
     window.addEventListener('auth:expired', onExpired)
     return () => { window.removeEventListener('auth:changed', onChange); window.removeEventListener('auth:expired', onExpired) }

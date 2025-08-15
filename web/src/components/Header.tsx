@@ -3,7 +3,9 @@ import { syncNow } from '../lib/sync'
 import { fetchAndCacheNotes } from '../lib/notesApi'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import '../clean.css'
+import '../styles/core.css'
+import '../styles/header.css'
+import '../styles/components.css'
 
 export default function Header() {
   const { pathname } = useLocation()
@@ -38,7 +40,14 @@ export default function Header() {
         <button
           className="add-header-btn"
           onClick={() => {
-            window.dispatchEvent(new CustomEvent('notes:openAdd'))
+            if (!pathname.startsWith('/notes')) {
+              navigate('/notes')
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('notes:openAdd'))
+              }, 100)
+            } else {
+              window.dispatchEvent(new CustomEvent('notes:openAdd'))
+            }
           }}
         >
           + Add a Note

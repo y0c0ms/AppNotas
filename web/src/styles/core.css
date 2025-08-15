@@ -1,0 +1,25 @@
+/* Core tokens, resets, layout */
+:root { --primary-color:#4F46E5; --primary-color-light:rgba(93,95,239,0.1); --secondary-color:#818CF8; --primary-color-dark:#4338CA; --bg-color:#f8f9fe; --bg-color-secondary:#f1f5f9; --text-color:#333; --card-bg:#fff; --border-color:#e5e7eb; --shadow:0 4px 12px rgba(0,0,0,.08); --header-bg:#fff; --header-text:#333; --calendar-today:rgba(93,95,239,.15); --anim-duration:.3s; --note-color-default:#ffffff; --note-color-blue:#deeaff; --note-color-green:#ddffe7; --note-color-red:#ffdddd; --note-color-purple:#eddeff; }
+.dark-mode { --primary-color:#7C3AED; --primary-color-light:rgba(124,58,237,.25); --secondary-color:#A78BFA; --primary-color-dark:#6D28D9; --bg-color:#0f1220; --bg-color-secondary:#171a2b; --text-color:#e5e7eb; --card-bg:#1f2337; --border-color:#3b3f57; --shadow:0 4px 12px rgba(0,0,0,.35); --header-bg:#13162a; --header-text:#f3f4f6; --calendar-today:rgba(124,58,237,.25); }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;background-color:var(--bg-color);color:var(--text-color);transition:background-color var(--anim-duration),color var(--anim-duration);min-height:100vh;width:100%;overflow-x:hidden}
+main{max-width:1200px;margin:0 auto;padding:1rem;animation:fadeIn .5s ease-out}
+@media (max-width: 768px){
+  main{padding:.5rem}
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Base view transitions */
+.view{display:none;opacity:0;transform:translateY(10px);transition:opacity .4s ease,transform .4s ease}
+.view.active{display:block;opacity:1;transform:translateY(0);animation:slideIn .4s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Generic form controls */
+input{padding:.75rem;border:1px solid var(--border-color);border-radius:.5rem;background-color:var(--card-bg);color:var(--text-color);font-size:1rem;transition:border-color var(--anim-duration),box-shadow var(--anim-duration)}
+input[type="email"], input[name*="email"] {-webkit-text-security:none;text-transform:none}
+input:focus{outline:none;border-color:var(--primary-color);box-shadow:0 0 0 3px var(--primary-color-light)}
+button{background-color:var(--primary-color);color:#fff;border:none;padding:.5rem 1rem;border-radius:.25rem;cursor:pointer;transition:background-color var(--anim-duration),transform var(--anim-duration),box-shadow var(--anim-duration)}
+button:hover{background-color:var(--secondary-color);transform:translateY(-2px);box-shadow:0 3px 8px rgba(0,0,0,.15)}
+button:active{transform:translateY(0)}
+
+

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import Header from '../components/Header'
-import '../clean.css'
+import '../styles/core.css'
+import '../styles/header.css'
+import '../styles/calendar.css'
+import '../styles/components.css'
 import { listLocalNotes } from '../lib/notes'
 
 export default function CalendarPage() {
@@ -59,7 +62,7 @@ function WeekGrid({ notes, selected, onSelect }: { notes: any[]; selected: Date;
     <div className="week-grid">
       {days.map(d => (
         <div className="day-column" key={d.toISOString()} onClick={() => onSelect(d)}>
-          <div className={`day-header ${isToday(d) ? 'today-header' : ''}`}>{d.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'short' })}{isSameDay(d, selected) ? ' •' : ''}</div>
+          <div className={`day-header ${isToday(d) ? 'today-header' : ''}`}>{d.toLocaleDateString('en-US', { weekday:'long', day:'numeric', month:'short' })}{isSameDay(d, selected) ? ' •' : ''}</div>
           <div className={`calendar-day ${byDay(d).length ? 'has-events' : ''}`}>
             {byDay(d).map(n => (
               <div key={n.id} className={`calendar-event color-default`} title={n.title}>{n.title}</div>
@@ -87,7 +90,7 @@ function MonthGrid({ notes, selected, onSelect }: { notes: any[]; selected: Date
   const visibleDays = days
   return (
     <div className="month-grid">
-      <div className="month-title">{base.toLocaleDateString(undefined, { month:'long', year:'numeric' })}</div>
+      <div className="month-title">{base.toLocaleDateString('en-US', { month:'long', year:'numeric' })}</div>
       {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(w => <div key={w} className="month-day-header">{w}</div>)}
       {new Array(firstDay.getDay()).fill(0).map((_,i) => <div key={'e'+i} className="month-day empty" />)}
       {visibleDays.map(d => (
@@ -118,7 +121,7 @@ function DayNotes({ notes, date }: { notes: any[]; date: Date }) {
   const items = useMemo(() => notes.filter(n => n.dueAt && new Date(n.dueAt).toISOString().slice(0,10)===key).sort((a,b)=>new Date(a.dueAt).getTime()-new Date(b.dueAt).getTime()), [notes, key])
   return (
     <div>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>{date.toLocaleDateString(undefined, { weekday:'long', month:'short', day:'numeric' })}</div>
+      <div style={{ fontWeight: 600, marginBottom: 8 }}>{date.toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' })}</div>
       {items.length===0 ? <div style={{ opacity:.7 }}>No notes for this day</div> : (
         <ul style={{ listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:8 }}>
           {items.map(n => (
