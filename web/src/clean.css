@@ -137,11 +137,11 @@ ul li input[type="text"]{flex:1;padding:8px 10px;border:1px solid var(--border-c
 .share-row input{width:100%}
 .add-note-form .add-btn{position:sticky;bottom:0;align-self:flex-end}
 .add-note-form .add-btn{background:var(--primary-color);color:#fff}
-.color-selector{display:flex;align-items:flex-start;margin-bottom:15px;max-height:180px;overflow:auto}
+.color-selector{display:flex;align-items:flex-start;margin-bottom:15px;max-height:none;overflow:visible}
 .color-label{margin-right:10px;font-size:.9rem;color:var(--text-color)}
-.color-options{display:flex;flex-wrap:wrap;gap:10px}
-.color-selector .color-option{flex:0 0 28px}
-.color-option{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid var(--border-color);transition:transform .2s,border-color .2s}
+.color-options{display:flex;flex-direction:row;flex-wrap:wrap;gap:10px;width:100%}
+.color-selector .color-option{flex:0 0 40px}
+.color-option{width:40px;height:24px;border-radius:50%;cursor:pointer;border:2px solid var(--border-color);transition:transform .2s,border-color .2s;display:inline-block}
 .color-option:hover{transform:scale(1.1)}
 .color-option.selected{border-color:var(--primary-color);transform:scale(1.15);box-shadow:0 0 0 2px var(--primary-color-light)}
 .color-option.default{background-color:var(--note-color-default)}
@@ -256,6 +256,15 @@ ul li input[type="text"]{flex:1;padding:8px 10px;border:1px solid var(--border-c
 .month-event.color-purple{background-color:var(--note-color-purple);border-left-color:#9b59b6}
 .background-mode .calendar-event,.background-mode .month-event{transition:none!important;transform:none!important;animation:none!important;box-shadow:none!important}
 .background-mode .day-column:hover,.background-mode .calendar-day:hover{transform:none!important;box-shadow:none!important}
+
+/* Mobile split layout for Calendar */
+@media (max-width: 768px){
+  .calendar-split{display:flex;flex-direction:column;height:calc(100vh - 160px);}
+  .calendar-top{flex:1;min-height:0;overflow:auto}
+  .calendar-bottom{flex:1;min-height:0;overflow:auto;border-top:1px solid var(--border-color);padding:8px}
+  .week-grid{grid-template-columns:repeat(7,1fr);gap:6px}
+  .month-grid{max-height:100%;overflow:auto}
+}
 
 /* Bottom sheet for mobile add form */
 .bottom-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);opacity:0;visibility:hidden;transition:opacity .25s;z-index:999}

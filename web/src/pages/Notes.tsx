@@ -33,6 +33,7 @@ export default function NotesPage() {
   const [query, setQuery] = useState('')
   // Removed shared filter from Notes tab (kept on Shared tab)
   const [filterType, setFilterType] = useState<'all'|'list'|'note'>('all')
+  const [dateFilter, setDateFilter] = useState<'all'|'date'|'noDate'>('all')
   const upsertTimers = useRef<Map<string, any>>(new Map())
   const debouncedUpsert = (id: string, patch: any, delay = 400) => {
     const m = upsertTimers.current
@@ -118,11 +119,14 @@ export default function NotesPage() {
         <div className="filters-row">
           <input className="search-input" placeholder="Search notes..." value={query} onChange={e => setQuery(e.target.value)} onInput={(e) => { const v=(e.target as HTMLInputElement).value; clearTimeout((window as any).__q); (window as any).__q=setTimeout(()=>setQuery(v), 250) }} />
           <div className="quick-filters">
+            <button className={`chip ${dateFilter==='all'?'active':''}`} onClick={()=>setDateFilter('all')}>All</button>
+            <button className={`chip ${dateFilter==='date'?'active':''}`} onClick={()=>setDateFilter('date')}>Mine</button>
+            <button className={`chip ${dateFilter==='noDate'?'active':''}`} onClick={()=>setDateFilter('noDate')}>Shared</button>
             <button className={`chip ${filterType==='all'?'active':''}`} onClick={()=>setFilterType('all')}>All types</button>
             <button className={`chip ${filterType==='note'?'active':''}`} onClick={()=>setFilterType('note')}>Notes</button>
             <button className={`chip ${filterType==='list'?'active':''}`} onClick={()=>setFilterType('list')}>Lists</button>
-            {(filterType!=='all'||query) && (
-              <button className="chip clear-chip" onClick={()=>{ setQuery(''); setFilterType('all') }}>Clear</button>
+            {(dateFilter!=='all'||filterType!=='all'||query) && (
+              <button className="chip clear-chip" onClick={()=>{ setQuery(''); setFilterType('all'); setDateFilter('all') }}>Clear</button>
             )}
           </div>
         </div>
