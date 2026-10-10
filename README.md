@@ -1,54 +1,73 @@
-AppNotas – Notes, Sharing, Offline-first (Electron + Web + API)
+# AppNotas
 
-AppNotas is a full-stack notes app with:
-- Desktop (Electron)
-- Web PWA (Vite + React + TS)
-- API (Express + Prisma + PostgreSQL)
+A full-stack notes app with sharing and offline sync, built as a Vite/React PWA and an Express + Prisma API.
 
-Key features
-- Personal notes: create, edit, color, and delete (soft delete)
-- Dates & calendar: optional due dates; calendar week/month views on web
-- Sharing: share a note with specific collaborators by email; collaborators see shared notes; owners can revoke sharing
-- Offline-first: local IndexedDB cache (web) and queued mutations that sync when online
-- Installable web app: PWA with service worker and manifest
+Live demo: https://appnotas-7pof.onrender.com
 
-Security & privacy
-- Passwords: Argon2id hashing
-- Authentication: short-lived JWT access tokens, opaque refresh tokens per device; rotation on refresh
-- Authorization: all notes routes require Bearer token; shared access is enforced in the DB
-- Storage: PostgreSQL (Neon) via Prisma ORM; no raw SQL
-- CORS: API restricted to the deployed PWA origin
-- Rate limiting and Helmet are enabled on API
+## Features
 
-Monorepo layout
-- `CleanAppNotas-Final/` – legacy Electron UI and assets
-- `server/` – Express API, Prisma schema, sync+sharing routes
-- `web/` – Vite + React PWA (Dexie for IndexedDB, ky for HTTP, Workbox PWA)
+- Personal notes: create, edit, color, and soft-delete
+- Optional due dates with week and month calendar views (web)
+- Share notes with collaborators by email; owners can revoke sharing; collaborators can leave
+- Offline-first: local IndexedDB cache (Dexie) with mutations synced to the server when online
+- Per-device sync with conflict detection
+- Installable PWA with service worker and manifest
 
-Development quickstart
-- API
-  - cd server && npm i
-  - Set env: DATABASE_URL, DIRECT_URL, JWT_SECRET
-  - npx prisma generate && npx prisma migrate deploy
-  - npm run build && npm start
-- Web PWA
-  - cd web && npm i
-  - Set env: VITE_API_BASE=https://your-api/v1
-  - npm run dev
+## Security
 
-Deploy
+- Passwords hashed with Argon2id
+- Short-lived JWT access tokens and opaque refresh tokens per device, rotated on refresh
+- All notes routes require a Bearer token; shared access is enforced in the database
+- Prisma ORM over PostgreSQL
+- CORS restricted to `CORS_ORIGIN`; Helmet, compression, and rate limiting enabled on the API
+
+## Stack
+
+- API: Express, Prisma 5, PostgreSQL, TypeScript
+- Web: Vite, React 19, React Router, Dexie, ky, Workbox (vite-plugin-pwa), Zod
+
+## Repository layout
+
+- `server/`: Express API, Prisma schema and migrations, sync and sharing routes
+- `web/`: Vite + React PWA
+
+## Run it
+
+Requires Node 18+ and PostgreSQL (the `server/docker-compose.yml` starts one on `localhost:5432`, user/password/db `app`).
+
+```bash
+# API
+cd server
+npm install
+export DATABASE_URL="postgresql://app:app@localhost:5432/app"
+export DIRECT_URL="$DATABASE_URL"
+export JWT_SECRET="change-me"
+npm run migrate
+npm run dev            # or: npm run build && npm start
+
+# Web (in another terminal)
+cd web
+npm install
+export VITE_API_BASE="http://localhost:4000/v1"
+npm run dev
+```
+
+The API listens on `PORT` (default 4000). `npm install` in `server/` runs `prisma generate` automatically.
+
+## Deploy
+
 - API: Render Web Service (Node 18+)
-  - Env: DATABASE_URL, DIRECT_URL, JWT_SECRET, CORS_ORIGIN=https://your-web
-- DB: Neon (Postgres)
+  - Env: `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `CORS_ORIGIN=https://your-web`
+- Database: Neon (PostgreSQL)
 - Web: Render Static Site
-  - Root: web; Build: npm ci && npm run build; Publish: dist
-  - Env: VITE_API_BASE=https://your-api/v1
+  - Root: `web`; Build: `npm ci && npm run build`; Publish: `dist`
+  - Env: `VITE_API_BASE=https://your-api/v1`
 
-PWA caveats
-- After deploys, hard refresh to update service worker.
-- For SPA routes, add `_redirects` with `/* /index.html 200` on the static host.
+## PWA notes
 
-License
-- MIT
+- After deploys, hard refresh to update the service worker.
+- For SPA routes, the static host needs a rewrite `/* /index.html 200` (`web/public/_redirects` provides this for Netlify-style hosts).
 
+## License
 
+MIT
